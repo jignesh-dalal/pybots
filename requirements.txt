@@ -1,1 +1,4 @@
-requests==2.28.1
+pyotp==2.9.0
+gspread==5.12.2
+kiteconnect==5.0.0
+pandas==1.5.2
