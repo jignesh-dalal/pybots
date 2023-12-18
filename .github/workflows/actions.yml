@@ -1,4 +1,4 @@
-name: run main.py
+name: run sip_bot.py
 
 on:
   schedule:
@@ -10,7 +10,7 @@ jobs:
     steps:
 
       - name: checkout repo content
-        uses: actions/checkout@v2 # checkout the repository content to github runner
+        uses: actions/checkout@v4 # checkout the repository content to github runner
 
       - name: setup python
         uses: actions/setup-python@v4
@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: execute py script # run main.py
+      - name: execute py script # run sip_bot.py
         env:
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
         run: python sip_bot.py
