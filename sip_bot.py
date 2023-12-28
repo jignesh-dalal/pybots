@@ -26,8 +26,6 @@ from kiteext import KiteExt
 # NOTIFICATION_KEY = config.get('main', 'NOTIFICATION_KEY')
 
 
-
-
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -39,10 +37,9 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-
-def notification(title, description):
+def notification(title, description, dataKey):
     global data_dict
-    notification_key = data_dict['notification_key']
+    notification_key = data_dict[dataKey]['notification_key']
     url = 'https://maker.ifttt.com/trigger/droid_notification/with/key/{}'.format(notification_key)
     myobj = {'value1': title, 'value2': description }
 
@@ -61,19 +58,32 @@ def read_file(file):
         return None
 
 def load_data():
-    global wks
+    global wks_dict
     global data_dict
 
     credentials = json.loads(GOOGLE_JSON)
     # print(type(credentials))
     gc = gspread.service_account_from_dict(credentials)
     # gc = gspread.service_account(filename='config/creds.json')
-    wks = gc.open("trading_python").sheet1
-    wks_data = wks.get_values()
-    data_dict = {item[0]: item[1] for item in wks_data}
+    allWks = gc.open("trading_python").worksheets(exclude_hidden=True)
+    
+    for sheet in allWks:
+        wksValues = sheet.get_values()
+        wks_data = {item[0].strip(): item[1] for item in wksValues}
+        symbol = wks_data['symbol']
+        if sheet.title != symbol:
+            sheet.update_title(symbol)
 
-def kite_login(kite_client, user_id, password, totp_key):
-    global wks
+        wks_dict[sheet.title] = sheet
+        # print(wks_dict)
+        data_dict[sheet.title] = wks_data
+        # print(data_dict)
+
+    # wks_data = wks.get_values()
+    # data_dict = {item[0]: item[1] for item in wks_data}
+
+def kite_login(kite_client, user_id, password, totp_key, dataKey):
+    global wks_dict
     global data_dict
     
     pin = pyotp.TOTP(totp_key).now()
@@ -82,31 +92,31 @@ def kite_login(kite_client, user_id, password, totp_key):
 
     # print(enctoken)
 
-    data_dict['access_token'] = enctoken
-    wks.update_acell('B4', enctoken)
+    data_dict[dataKey]['access_token'] = enctoken
+    wks_dict[dataKey].update_acell('B4', enctoken)
 
-def create_session():
-    global wks
+def create_session(dataKey):
+    global wks_dict
     global data_dict
 
     kc = KiteExt()
     
     try:
-        user_id = data_dict['user_id']
-        password = data_dict['user_pwd'] 
-        totp_key = data_dict['totp_key']
-        access_token = data_dict['access_token']
+        user_id = data_dict[dataKey]['user_id']
+        password = data_dict[dataKey]['user_pwd'] 
+        totp_key = data_dict[dataKey]['totp_key']
+        access_token = data_dict[dataKey]['access_token']
         
         if access_token:
             # token = read_file('kite_token.txt')
             kc.login_using_enctoken(userid=user_id, enctoken=access_token, public_token=None)
             kc.profile()
         else:
-            kite_login(kite_client=kc, user_id=user_id, password=password, totp_key=totp_key)
+            kite_login(kite_client=kc, user_id=user_id, password=password, totp_key=totp_key, dataKey=dataKey)
     
     except Exception as ex:
         if 'access_token' in str(ex):
-            kite_login(kite_client=kc, user_id=user_id, password=password, totp_key=totp_key)
+            kite_login(kite_client=kc, user_id=user_id, password=password, totp_key=totp_key, dataKey=dataKey)
         else: print('login error: {}'.format(str(ex)))
     
     return kc
@@ -180,7 +190,7 @@ def is_monthly_sip_order():
 
 # is_monthly_sip_order()
 
-def is_avg_down_order(ltp, last_order):
+def is_avg_down_order(ltp, last_order, dataKey):
     global data_dict
 
     if last_order is None:
@@ -188,7 +198,7 @@ def is_avg_down_order(ltp, last_order):
         last_order['sip_price'] = 0
         last_order['avg_down_price'] = 0
 
-    avg_down_percent = float(data_dict['avg_down_percent']) / 100
+    avg_down_percent = float(data_dict[dataKey]['avg_down_percent']) / 100
     price = last_order['sip_price'] if (last_order['avg_down_price'] == 0) else last_order['avg_down_price'] 
     avg_down_price = price * (1 - avg_down_percent)
     percent_away = 0 if avg_down_price == 0 else ((ltp / avg_down_price) - 1) * 100
@@ -223,20 +233,20 @@ def place_order(exchange, symbol, transaction_type, quantity, order_type = None,
         
         print(f"Order id = {order_id}")
     except Exception as e:
-        message = "Order rejected with error : " + str(e)
+        message = f'Order rejected with error : {str(e)}'
         print(message)
     
     return order_id
     
 
-def get_order_data():
+def get_order_data(dataKey):
     global data_dict
 
     return {
-        "id": data_dict['last_order_id'],
-        "qty": int(data_dict['last_order_qty']),
-        "sip_price": float(data_dict['last_sip_price']),
-        "avg_down_price": float(data_dict['last_avg_down_price'])
+        "id": data_dict[dataKey]['last_order_id'],
+        "qty": int(data_dict[dataKey]['last_order_qty']),
+        "sip_price": float(data_dict[dataKey]['last_sip_price']),
+        "avg_down_price": float(data_dict[dataKey]['last_avg_down_price'])
     }
 
 
@@ -246,19 +256,19 @@ def get_order_data():
     
     # return last_order
 
-def save_order_data(order_id, sip_price, quantity, avg_down_price):
-    global wks
+def save_order_data(order_id, sip_price, quantity, avg_down_price, dataKey):
+    global wks_dict
     global data_dict
 
-    data_dict['last_order_id'] = order_id
-    data_dict['last_order_qty'] = quantity
-    data_dict['last_sip_price'] = sip_price
-    data_dict['last_avg_down_price'] = avg_down_price
+    data_dict[dataKey]['last_order_id'] = order_id
+    data_dict[dataKey]['last_order_qty'] = quantity
+    data_dict[dataKey]['last_sip_price'] = sip_price
+    data_dict[dataKey]['last_avg_down_price'] = avg_down_price
 
-    wks.update_acell('B9', order_id) 
-    wks.update_acell('B10', quantity)
-    wks.update_acell('B11', sip_price)
-    wks.update_acell('B12', avg_down_price)
+    wks_dict[dataKey].update_acell('B9', order_id) 
+    wks_dict[dataKey].update_acell('B10', quantity)
+    wks_dict[dataKey].update_acell('B11', sip_price)
+    wks_dict[dataKey].update_acell('B12', avg_down_price)
     
     # order = {
     #     "id": order_id,
@@ -277,53 +287,58 @@ def trading_job():
 
     load_data()
 
-    skip_job = data_dict['skip_job'].lower() in ['true', '1', 't', 'y', 'yes']
-    if skip_job:
-        print('Skipping run as skip_job is set..')
-        return
-    
-    kite = create_session()
-    
-    exchange_symbol = data_dict['symbol']
-    exchange = exchange_symbol[:3]
-    symbol = exchange_symbol[4:]
-    qty = int(data_dict['sip_quantity'])
+    # print(data_dict)
+    # return
 
-    print('- - - - - - - - - - - - - - - -')
-    print(bcolors.HEADER + '- - Checking ' + exchange_symbol + ' - -' + bcolors.ENDC)
+    for dataKey in data_dict.keys():
+        print('- - - - - - - - - - - - - - - - - - -')
+        skip_job = data_dict[dataKey]['skip_job'].lower() in ['true', '1', 't', 'y', 'yes']
+        if skip_job:
+            print(f'{bcolors.WARNING}Skipping run for {dataKey} as skip_job is set..{bcolors.ENDC}')
+            continue
     
-    is_sip = is_monthly_sip_order()
+        kite = create_session(dataKey)
     
-    is_avg_down = False
-    last_order = get_order_data()
+        exchange_symbol = data_dict[dataKey]['symbol']
+        exchange = exchange_symbol[:3]
+        symbol = exchange_symbol[4:]
+        qty = int(data_dict[dataKey]['sip_quantity'])
 
-    # print(last_order)
-    ltp_data = kite.ltp(exchange_symbol)
-    ltp = ltp_data[exchange_symbol]['last_price']
+        userId = data_dict[dataKey]['user_id']
+        print(f'{bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{bcolors.ENDC}')
+    
+        is_sip = is_monthly_sip_order()
+    
+        is_avg_down = False
+        last_order = get_order_data(dataKey)
+
+        # print(last_order)
+        ltp_data = kite.ltp(exchange_symbol)
+        ltp = ltp_data[exchange_symbol]['last_price']
         
-    # if last_order is not None:
-    is_avg_down = is_avg_down_order(ltp, last_order)
+        # if last_order is not None:
+        is_avg_down = is_avg_down_order(ltp, last_order, dataKey)
 
-    if is_sip or is_avg_down:
-        order_id = place_order(exchange, symbol, 'BUY', qty, 'MARKET')
+        if is_sip or is_avg_down:
+            order_id = place_order(exchange, symbol, 'BUY', qty, 'MARKET')
 
-        if order_id is not None:
-            time.sleep(10)
-            order_history = kite.order_history(order_id = order_id)
-            
-            if order_history[-1].get('status') == 'COMPLETE':
-                order_price = order_history[-1].get('average_price')
-                price = order_price if is_sip else last_order['sip_price']
-                qty = order_history[-1].get('filled_quantity')
-                avg_down_price = order_price if is_avg_down else 0
-                try:
-                    save_order_data(order_id, price, qty, avg_down_price)
-                    notification('Bought ' + exchange_symbol, 'Buy Price ' + str(order_price) + ' - Quantity ' + str(qty))
-                except Exception as ex:
-                    print('error with save order')
-                    print(ex)
-    # else:
-    #     print('No order placed as criterias not met!!')
+            if order_id is not None:
+                time.sleep(10)
+                order_history = kite.order_history(order_id = order_id)
+                
+                if order_history[-1].get('status') == 'COMPLETE':
+                    order_price = order_history[-1].get('average_price')
+                    price = order_price if is_sip else last_order['sip_price']
+                    qty = order_history[-1].get('filled_quantity')
+                    avg_down_price = order_price if is_avg_down else 0
+                    try:
+                        save_order_data(order_id, price, qty, avg_down_price, dataKey)
+                        notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(qty)}', dataKey)
+                    except Exception as ex:
+                        print('error with save order')
+                        print(ex)
+        # else:
+        #     print('No order placed as criterias not met!!')
 
 
 def exit_gracefully():
@@ -332,8 +347,8 @@ def exit_gracefully():
 
 
 scheduler = None
-wks = None
-data_dict = None
+wks_dict = {}
+data_dict = {}
 kite = None
 
 try:
