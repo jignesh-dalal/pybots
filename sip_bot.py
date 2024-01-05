@@ -11,6 +11,7 @@ import json
 
 from datetime import datetime, date, timezone, timedelta
 # from nsepy.derivatives import get_expiry_date
+from nse import nse_holidays
 from kiteext import KiteExt
 
 # from configparser import ConfigParser
@@ -147,8 +148,9 @@ def monthly_expiry():
 
 
 def is_holiday(expiry):
-    holidays = pd.read_csv('./config/nse_holidays.csv')
-    dates_list = [datetime.strptime(holiday, '%d/%m/%Y').date() for holiday in holidays['date']]
+    # holidays = pd.read_csv('./config/nse_holidays.csv')
+    holiday_json = nse_holidays()["FO"]
+    dates_list = [datetime.strptime(holiday['tradingDate'], '%d-%b-%Y').date() for holiday in holiday_json]
 
     return expiry in dates_list
 
