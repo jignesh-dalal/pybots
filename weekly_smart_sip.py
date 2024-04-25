@@ -90,7 +90,7 @@ class WeeklySmartSIP:
 
             if is_sip or is_avg_down:
                 ask_bid_dict = self.broker.get_ask_bid(asset)
-                price = ask_bid_dict[exchange_symbol]['asks'][0]['price']
+                price = ask_bid_dict[exchange_symbol]['bids'][0]['price']
                 price = ltp if price == 0 else price
                 qty = round(sip_amount / price)
 
