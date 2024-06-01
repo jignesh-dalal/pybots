@@ -11,12 +11,22 @@ try:
     import kiteconnect
 except ImportError:
     os.system('python -m pip install kiteconnect')
+try:
+    import pyotp
+except ImportError:
+    os.system('python -m pip install pyotp')
 
 import time
 import requests
 import dateutil.parser
+import pyotp
 
 from kiteconnect import KiteTicker
+
+def get_totp(totp_key):
+    pin = pyotp.TOTP(totp_key).now()
+    twoFA = f"{int(pin):06d}" if len(pin) <= 5 else pin
+    return twoFA
 
 def get_enctoken(userid, password, twofa):
     session = requests.Session()

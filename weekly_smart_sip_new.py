@@ -91,7 +91,7 @@ class WeeklySmartSIP:
                 sip_amount = int(sip_data['sip_amount'])
                 inst_token = eval(sip_data['instrument_token'])
                 
-                userId = self.broker.profile()["user_id"]
+                userId = self.broker.user_id
                 print(f'{f.bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{f.bcolors.ENDC}')
 
                 is_sip = WeeklySmartSIP.is_sip_day()
@@ -168,18 +168,19 @@ if __name__ == "__main__":
     #     'TOTP_KEY': '',
     #     'ACCESS_TOKEN': 'EFmypalwkfU/igrlrUAwjfwjitY/e0xzR327GxVtI+pJTBb6hGEzvuNhdRdxYUOUzE6Re91lYbviTzUDf9Kr+4t5BmBFEyKQ14eytCx2LI7gacSugBBcNg==',
     # }
-    config = f.get_creds_by_user_id('SJ0281')
+    user_id = 'SJ0281'
+    config = f.get_creds_by_user_id(user_id)
     
     enctoken = config["ACCESS_TOKEN"]
     try:
-        broker = KiteApp(enctoken)
-        broker.profile()
+        broker = KiteApp(enctoken, user_id)
+        broker.profile()['user_id']
     except Exception as ex:
-        if 'access_token' in str(ex):
-            user_id = config["USER_ID"]
+        if 'NoneType' in str(ex):
             pwd = config["PASSWORD"]
             totp_key = config["TOTP_KEY"]
-            enctoken = get_enctoken(user_id, pwd, totp_key)
+            totp = get_totp(totp_key)
+            enctoken = get_enctoken(user_id, pwd, totp)
             broker = KiteApp(enctoken)
         else: print(f'login error: {str(ex)}')
 
