@@ -90,11 +90,12 @@ class WeeklySmartSIP:
                 symbol = exchange_symbol[4:]
                 sip_amount = int(sip_data['sip_amount'])
                 inst_token = eval(sip_data['instrument_token'])
+                skip_sip = sip_data['skip_sip'].lower() in ['true', '1', 't', 'y', 'yes']
                 
                 userId = self.broker.user_id
                 print(f'{f.bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{f.bcolors.ENDC}')
 
-                is_sip = WeeklySmartSIP.is_sip_day()
+                is_sip = False if skip_sip else WeeklySmartSIP.is_sip_day()
             
                 is_avg_down = False
                 last_order = {
