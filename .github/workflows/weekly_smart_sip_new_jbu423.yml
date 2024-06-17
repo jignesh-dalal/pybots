@@ -1,4 +1,4 @@
-name: run weekly_smart_sip.py
+name: run weekly_smart_sip_jbu423.py
 
 on:
   schedule:
