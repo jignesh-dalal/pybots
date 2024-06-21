@@ -114,7 +114,7 @@ class WeeklySmartSIP:
                 if is_sip or is_avg_down:
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     price = ltp if price == 0 else price
-                    qty = round(sip_amount / price)
+                    qty = floor(sip_amount / price)
 
                     print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price..{f.bcolors.ENDC}')
 
