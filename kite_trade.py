@@ -20,6 +20,7 @@ import time
 import requests
 import dateutil.parser
 import pyotp
+import json
 
 from kiteconnect import KiteTicker
 
@@ -79,6 +80,19 @@ class KiteApp:
     EXCHANGE_BFO = "BFO"
     EXCHANGE_MCX = "MCX"
 
+    # GTT order type
+    GTT_TYPE_OCO = "two-leg"
+    GTT_TYPE_SINGLE = "single"
+
+    # GTT order status
+    GTT_STATUS_ACTIVE = "active"
+    GTT_STATUS_TRIGGERED = "triggered"
+    GTT_STATUS_DISABLED = "disabled"
+    GTT_STATUS_EXPIRED = "expired"
+    GTT_STATUS_CANCELLED = "cancelled"
+    GTT_STATUS_REJECTED = "rejected"
+    GTT_STATUS_DELETED = "deleted"
+
     def __init__(self, enctoken, user_id=''):
         self.enctoken = enctoken
         self.headers = {"Authorization": f"enctoken {self.enctoken}"}
@@ -102,7 +116,7 @@ class KiteApp:
                                  'exchange': row[11]})
         return Exchange
 
-    def historical_data(self, instrument_token, from_date, to_date, interval, continuous=False, oi=False):
+    def historical_data(self, instrument_token, from_date, to_date, interval='day', continuous=False, oi=False):
         params = {"from": from_date,
                   "to": to_date,
                   "interval": interval,
@@ -113,10 +127,10 @@ class KiteApp:
             headers=self.headers).json()["data"]["candles"]
         records = []
         for i in lst:
-            record = {"date": dateutil.parser.parse(i[0]), "open": i[1], "high": i[2], "low": i[3],
-                      "close": i[4], "volume": i[5],}
+            record = {"Date": dateutil.parser.parse(i[0]), "Open": i[1], "High": i[2], "Low": i[3],
+                      "Close": i[4], "Volume": i[5],}
             if len(i) == 7:
-                record["oi"] = i[6]
+                record["OI"] = i[6]
             records.append(record)
         return records
 
@@ -180,6 +194,83 @@ class KiteApp:
                                        headers=self.headers).json()["data"]["order_id"]
         return order_id
     
+
+    # MY CODE
+    def gtt_orders(self):
+        gtt_orders = self.session.get(f"{self.root_url}/gtt/triggers", headers=self.headers).json()["data"]
+        return gtt_orders
+    
+    def gtt_order(self, order_id):
+        gtt_order = self.session.get(f"{self.root_url}/gtt/triggers/{order_id}", headers=self.headers).json()["data"]
+        return gtt_order
+    
+    def _get_gtt_payload(self, trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders):
+        """Get GTT payload"""
+        if type(trigger_values) != list:
+            raise Exception("invalid type for `trigger_values`")
+        if trigger_type == self.GTT_TYPE_SINGLE and len(trigger_values) != 1:
+            raise Exception("invalid `trigger_values` for single leg order type")
+        elif trigger_type == self.GTT_TYPE_OCO and len(trigger_values) != 2:
+            raise Exception("invalid `trigger_values` for OCO order type")
+
+        condition = {
+            "exchange": exchange,
+            "tradingsymbol": tradingsymbol,
+            "trigger_values": trigger_values,
+            "last_price": last_price,
+        }
+
+        gtt_orders = []
+        for o in orders:
+            # Assert required keys inside gtt order.
+            for req in ["transaction_type", "quantity", "order_type", "product", "price"]:
+                if req not in o:
+                    raise Exception("`{req}` missing inside orders".format(req=req))
+            gtt_orders.append({
+                "exchange": exchange,
+                "tradingsymbol": tradingsymbol,
+                "transaction_type": o["transaction_type"],
+                "quantity": int(o["quantity"]),
+                "order_type": o["order_type"],
+                "product": o["product"],
+                "price": float(o["price"]),
+            })
+
+        return condition, gtt_orders
+
+    
+    def place_gtt(self, trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders):
+        # Validations.
+        assert trigger_type in [self.GTT_TYPE_OCO, self.GTT_TYPE_SINGLE]
+        condition, gtt_orders = self._get_gtt_payload(trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
+
+        params = {
+            "condition": json.dumps(condition),
+            "orders": json.dumps(gtt_orders),
+            "type": trigger_type
+        }
+        trigger_id = self.session.post(f"{self.root_url}/gtt/triggers",
+                                     data=params, headers=self.headers).json()["data"]["trigger_id"]
+        return trigger_id
+    
+    def modify_gtt(
+        self, trigger_id, trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders
+    ):
+        condition, gtt_orders = self._get_gtt_payload(trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
+        
+        params = {
+            "condition": json.dumps(condition),
+            "orders": json.dumps(gtt_orders),
+            "type": trigger_type
+        }
+        trigger_id = self.session.put(f"{self.root_url}/gtt/triggers/{trigger_id}",
+                                     data=params, headers=self.headers).json()["data"]["trigger_id"]
+        return trigger_id
+    
+    def delete_gtt(self, trigger_id):
+        trigger_id = self.session.delete(f"{self.root_url}/gtt/triggers/{trigger_id}", 
+                                         headers=self.headers).json()["data"]["trigger_id"]
+        return trigger_id
 
     def start_stream(self, on_ticks, instrument_tokens, mode=KiteTicker.MODE_FULL):
         self.kws.on_ticks = on_ticks

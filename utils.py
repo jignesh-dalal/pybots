@@ -1,7 +1,9 @@
 import os
+import re
 import json
 import gspread
 import requests
+import pandas as pd
 
 from datetime import datetime
 from typing import Dict, Any
@@ -124,6 +126,11 @@ def get_last_row(worksheet):
 def next_available_row(worksheet):
     return str(get_last_row(worksheet)+1)
 
+def get_all_records_from_sheet(spreadsheet_name="trading_python", worksheet_name="Logs"):
+    sh = get_spreadsheet_by_name(spreadsheet_name)
+    worksheet = sh.worksheet(worksheet_name)
+    return worksheet.get_all_records()
+
 def write_log_to_excel(title, data, spreadsheet_name="trading_python", worksheet_name="Logs"):
     sh = get_spreadsheet_by_name(spreadsheet_name)
     worksheet = sh.worksheet(worksheet_name)
@@ -131,6 +138,13 @@ def write_log_to_excel(title, data, spreadsheet_name="trading_python", worksheet
     worksheet.update_acell(f"A{next_row}", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     worksheet.update_acell(f"B{next_row}", title)
     worksheet.update_acell(f"C{next_row}", data)
+
+def write_df_to_excel_sheet(df, spreadsheet_name="trading_python", worksheet_name="Logs"):
+    headers = [df.columns.values.tolist()]
+    rows = df.values.tolist()
+    sh = get_spreadsheet_by_name(spreadsheet_name)
+    worksheet = sh.worksheet(worksheet_name)
+    worksheet.update(headers + rows)
 
 def write_toppers_to_excel(data, spreadsheet_name="trading_python", worksheet_name="Top13"):
     sh = get_spreadsheet_by_name(spreadsheet_name)
@@ -141,3 +155,30 @@ def read_toppers_from_excel(spreadsheet_name="trading_python", worksheet_name="T
     sh = get_spreadsheet_by_name(spreadsheet_name)
     worksheet = sh.worksheet(worksheet_name)
     return worksheet.acell('A1').value
+
+
+niftyindices_headers = {
+    'Connection': 'keep-alive',
+    'Cache-Control': 'max-age=0',
+    'DNT': '1',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36',
+    'Sec-Fetch-User': '?1',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-Mode': 'navigate',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+}
+
+index_stock_list_url = 'https://www.niftyindices.com/IndexConstituent/ind_{0}list.csv'
+
+def get_nse_index_stocklist(index_name):
+    trim_index_name = re.sub(r'\s+', '', index_name)
+    url = index_stock_list_url.format(trim_index_name.lower())
+    
+    # reading the data in the csv file 
+    df = pd.read_csv(url, storage_options=niftyindices_headers)
+    df.index = df.index + 1
+
+    return df
