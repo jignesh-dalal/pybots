@@ -1,4 +1,3 @@
-# %%
 import pandas as pd
 import pandas_ta as ta
 import utils as f
@@ -8,7 +7,6 @@ from kite_trade import *
 from datetime import datetime, timedelta
 
 
-# %%
 user_id = 'SJ0281'
 config = f.get_creds_by_user_id(user_id)
 
@@ -25,7 +23,7 @@ except Exception as ex:
         kite = KiteApp(enctoken)
     else: print(f'login error: {str(ex)}')
 
-# %%
+
 def apply_total_signal(df, rsi_threshold_low=30, rsi_threshold_high=70, bb_width_threshold = 0.0015):
     # Initialize the 'TotalSignal' column
     df['TotalSignal'] = 0
@@ -64,11 +62,11 @@ def apply_total_signal(df, rsi_threshold_low=30, rsi_threshold_high=70, bb_width
 
     return df
 
-# %%
+
 nifty750 = f.get_all_records_from_sheet(worksheet_name='Nifty750')
 nifty750 = [x for x in nifty750 if x['IToken'] != -1]
 
-# %%
+
 to_date = datetime.now()
 from_date = to_date - timedelta(days=90)
 #inst_token = 701185
@@ -132,7 +130,7 @@ for stock in nifty750:
 
     time.sleep(0.1)
     
-# %%
+
 MAX_TRADES = 5
 df_t = pd.DataFrame()
 if len(df_s) > MAX_TRADES:
@@ -176,7 +174,6 @@ else:
 df_t
         
 
-# %%
 MAX_AMT_PER_TRADE = 10000
 
 for index, row in df_t.iterrows():
