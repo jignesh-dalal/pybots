@@ -1,9 +1,8 @@
-name: run weekly_smart_sip.py
+name: run weekly_smart_sip_jbu423.py
 
 on:
   schedule:
     - cron: '45 3-9 * * 1-5' # At minute 45 past every hour from 3 through 9 on every day-of-week from Monday through Friday.
-  workflow_dispatch:
 
 jobs:
   build:
@@ -26,4 +25,4 @@ jobs:
       - name: execute py script # run sip_bot.py
         env:
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
-        run: python weekly_smart_sip_new.py
+        run: python weekly_smart_sip_new_jbu423.py

@@ -1,6 +1,5 @@
 import time
 import utils as f
-import math
 
 from datetime import datetime, date, timezone
 from kite_trade import *
@@ -63,7 +62,7 @@ class WeeklySmartSIP:
         
     def on_trading_iteration(self):
         # self.load_data()
-        wks_name = "SIP"
+        wks_name = "SIP_JBU423"
         sip_dict = f.get_values_from_worksheet(worksheet_name=wks_name)
         self.instrument_token_dict = {eval(v['instrument_token']): {'ltp': -1, 'buy': [], 'sell': []} for v in sip_dict.values()}
         self.instrument_tokens = list(self.instrument_token_dict.keys())
@@ -115,7 +114,7 @@ class WeeklySmartSIP:
                 if is_sip or is_avg_down:
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     price = ltp if price == 0 else price
-                    qty = math.floor(sip_amount / price)
+                    qty = round(sip_amount / price)
 
                     print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price..{f.bcolors.ENDC}')
 
@@ -170,7 +169,7 @@ if __name__ == "__main__":
     #     'TOTP_KEY': '',
     #     'ACCESS_TOKEN': 'EFmypalwkfU/igrlrUAwjfwjitY/e0xzR327GxVtI+pJTBb6hGEzvuNhdRdxYUOUzE6Re91lYbviTzUDf9Kr+4t5BmBFEyKQ14eytCx2LI7gacSugBBcNg==',
     # }
-    user_id = 'SJ0281'
+    user_id = 'JBU423'
     config = f.get_creds_by_user_id(user_id)
     
     enctoken = config["ACCESS_TOKEN"]
