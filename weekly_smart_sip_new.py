@@ -1,5 +1,6 @@
 import time
 import utils as f
+import math
 
 from datetime import datetime, date, timezone
 from kite_trade import *
@@ -114,7 +115,7 @@ class WeeklySmartSIP:
                 if is_sip or is_avg_down:
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     price = ltp if price == 0 else price
-                    qty = floor(sip_amount / price)
+                    qty = math.floor(sip_amount / price)
 
                     print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price..{f.bcolors.ENDC}')
 
