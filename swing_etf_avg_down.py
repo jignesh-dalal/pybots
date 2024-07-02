@@ -98,11 +98,13 @@ class SwingETFAvgDown:
                 is_avg_down = SwingETFAvgDown.is_avg_down_order(ltp, last_order, asset_data)
 
                 if is_avg_down:
+                    buy_count += 1
+                    amount = buy_amount * buy_count
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     price = ltp if price == 0 else price
-                    qty = math.floor(buy_amount / price)
+                    qty = math.floor(amount / price)
 
-                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price..{f.bcolors.ENDC}')
+                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price amounting to {amount}{f.bcolors.ENDC}')
 
                     order_id = self.broker.place_order(variety=self.broker.VARIETY_REGULAR,
                             exchange=self.broker.EXCHANGE_NSE,
@@ -136,7 +138,6 @@ class SwingETFAvgDown:
                             price = order_price
                             qty = order_history[-1].get('filled_quantity')
                             avg_down_price = order_price if is_avg_down else 0
-                            buy_count += 1
                             try:
                                 order_data = {
                                     'buy_count': buy_count,
