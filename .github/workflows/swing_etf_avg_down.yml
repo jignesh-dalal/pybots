@@ -2,7 +2,7 @@ name: run swing_etf_avg_down.py
 
 on:
   schedule:
-    - cron: '45 3-9 * * 1-5' # At minute 45 past every hour from 3 through 9 on every day-of-week from Monday through Friday.
+    - cron: '50 3-9 * * 1-5' # At minute 50 past every hour from 3 through 9 on every day-of-week from Monday through Friday.
   workflow_dispatch:
 
 jobs:
