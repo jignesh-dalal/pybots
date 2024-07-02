@@ -19,7 +19,7 @@ class SwingETFAvgDown:
             last_order = {}
             last_order['avg_down_price'] = 0
 
-        avg_down_percent = float(sip_data['avg_down_percent']) / 100
+        avg_down_percent = float(sip_data['avg_down_per']) / 100
         price = last_order['avg_down_price']
         avg_down_price = price * (1 - avg_down_percent)
         percent_away = 0 if avg_down_price == 0 else ((ltp / avg_down_price) - 1) * 100
@@ -31,6 +31,29 @@ class SwingETFAvgDown:
         
         return ltp <= avg_down_price
     
+    def create_or_update_gtt(self, trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders, gtt_order_id=None):
+        if gtt_order_id is None:
+            return self.broker.place_gtt(
+                trigger_type, 
+                tradingsymbol,
+                exchange,
+                trigger_values,
+                last_price,
+                orders
+            )
+        
+        gtt_order = self.broker.gtt_order(gtt_order_id)
+        if gtt_order:
+            return self.broker.modify_gtt(
+                gtt_order_id,
+                trigger_type,
+                tradingsymbol,
+                exchange,
+                trigger_values,
+                last_price,
+                orders
+            )
+    
     def on_ws_ticks(self, ws, ticks):
         # print(ticks)
         for t in ticks:
@@ -41,7 +64,6 @@ class SwingETFAvgDown:
                 self.instrument_token_dict[inst_token]['sell'] = t['depth']['sell']
         
         self.tick_received = True
-        print(self.instrument_token_dict)
         
     def on_trading_iteration(self):
         # self.load_data()
@@ -60,6 +82,8 @@ class SwingETFAvgDown:
             else: break
         
         if self.tick_received:
+            print(self.instrument_token_dict)
+
             for key in asset_dict.keys():
                 print('- - - - - - - - - - - - - - - - - - -')
                 skip_job = asset_dict[key]['skip_job'].lower() in ['true', '1', 't', 'y', 'yes']
@@ -88,7 +112,7 @@ class SwingETFAvgDown:
                 last_order = {
                     "id": asset_data['last_order_id'],
                     "qty": int(asset_data['last_order_qty']),
-                    "avg_down_price": float(asset_data['last_avg_down_price'])
+                    "avg_down_price": float(asset_data['last_order_price'])
                 }
 
                 # print(last_order)
@@ -100,11 +124,11 @@ class SwingETFAvgDown:
                 if is_avg_down:
                     buy_count += 1
                     amount = buy_amount * buy_count
-                    price = self.instrument_token_dict[inst_token]['buy'][0]['price']
-                    price = ltp if price == 0 else price
-                    qty = math.floor(amount / price)
+                    o_price = self.instrument_token_dict[inst_token]['buy'][0]['price']
+                    o_price = ltp if o_price == 0 else o_price
+                    order_qty = math.floor(amount / o_price)
 
-                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price amounting to {amount}{f.bcolors.ENDC}')
+                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {order_qty} quantity at {o_price} price amounting to {amount}{f.bcolors.ENDC}')
 
                     order_id = self.broker.place_order(variety=self.broker.VARIETY_REGULAR,
                             exchange=self.broker.EXCHANGE_NSE,
@@ -113,7 +137,7 @@ class SwingETFAvgDown:
                             quantity=qty,
                             product=self.broker.PRODUCT_CNC,
                             order_type=self.broker.ORDER_TYPE_LIMIT,
-                            price=price,
+                            price=o_price,
                             validity=None,
                             disclosed_quantity=None,
                             trigger_price=None,
@@ -122,11 +146,18 @@ class SwingETFAvgDown:
                             trailing_stoploss=None,
                             tag="TradingPython")
 
+                    # order_id = '-1'
+                    order_h = [{
+                        'status': 'COMPLETE',
+                        'average_price': o_price,
+                        'filled_quantity': order_qty
+                    }]
+
                     if order_id is not None:
                         order_status = None
                         order_status_count = 0
                         while not order_status == 'COMPLETE':
-                            order_history = self.broker.order_history(order_id)
+                            order_history = order_h if order_id == '-1' else self.broker.order_history(order_id)
                             order_status = order_history[-1].get('status')
                             order_status_count += 1
                             # print(f'Count: {count}')
@@ -135,19 +166,51 @@ class SwingETFAvgDown:
                         
                         if order_status == 'COMPLETE':
                             order_price = order_history[-1].get('average_price')
-                            price = order_price
-                            qty = order_history[-1].get('filled_quantity')
-                            avg_down_price = order_price if is_avg_down else 0
+                            order_qty = order_history[-1].get('filled_quantity')
+                            order_cost = round(order_qty * order_price, 2)
                             try:
+                                qty = int(asset_data['qty']) + order_qty
+                                cost = float(asset_data['cost']) + order_cost
+                                price = cost / qty
+                                target_per = float(asset_data['target_per']) / 100
+                                target_price = round(price * (1 + target_per), 2)
+                                avg_down_per = float(asset_data['avg_down_per']) / 100
+                                avg_down_price = price * (1 - avg_down_per)
+
+                                gtt_order_id = asset_data['gtt_id'] if asset_data['gtt_id'] else None
+
+                                gtt_order_id = self.create_or_update_gtt(
+                                    trigger_type=self.broker.GTT_TYPE_SINGLE,
+                                    tradingsymbol=symbol,
+                                    exchange=self.broker.EXCHANGE_NSE,
+                                    trigger_values=[target_price],
+                                    last_price=order_price,
+                                    orders=[{
+                                        'exchange': self.broker.EXCHANGE_NSE,
+                                        'transaction_type': self.broker.TRANSACTION_TYPE_SELL,
+                                        'quantity': qty,
+                                        'order_type': self.broker.ORDER_TYPE_LIMIT,
+                                        'product': self.broker.PRODUCT_CNC,
+                                        'price': target_price
+                                    }],
+                                    gtt_order_id=gtt_order_id
+                                )
+
                                 order_data = {
                                     'buy_count': buy_count,
+                                    'qty': qty,
+                                    'price': price,
+                                    'cost': cost,
+                                    'avg_down_price': avg_down_price,
+                                    'target_price': target_price,
                                     'last_order_id': order_id,
-                                    'last_order_qty': qty,
-                                    'last_avg_down_price': avg_down_price
+                                    'last_order_qty': order_qty,
+                                    'last_order_price': order_price,
+                                    'gtt_id': gtt_order_id
                                 }
                                 
                                 f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
-                                f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(qty)}', config['NOTIFICATION_KEY'])
+                                # f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(order_qty)}', config['NOTIFICATION_KEY'])
                             except Exception as ex:
                                 print('error with save order')
                                 print(ex)
