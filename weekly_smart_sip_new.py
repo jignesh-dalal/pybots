@@ -21,7 +21,7 @@ class WeeklySmartSIP:
     def is_sip_day():
         tdate = date.today()
         is_tue_thu = tdate.isoweekday() in [2,4]
-        start = datetime.now(timezone.utc).replace(hour=9, minute=44, second=0).time()
+        start = datetime.now(timezone.utc).replace(hour=8, minute=55, second=0).time()
         end = datetime.now(timezone.utc).replace(hour=9, minute=58, second=0).time()
         current = datetime.now(timezone.utc).time()
 
