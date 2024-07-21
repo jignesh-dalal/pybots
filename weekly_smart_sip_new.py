@@ -134,12 +134,26 @@ class WeeklySmartSIP:
                             stoploss=None,
                             trailing_stoploss=None,
                             tag="TradingPython")
+                    
+                    # order_id = '-1'
+                    order_h = [{
+                        'status': 'COMPLETE',
+                        'average_price': price,
+                        'filled_quantity': qty
+                    }]
 
                     if order_id is not None:
-                        time.sleep(10)
-                        order_history = self.broker.order_history(order_id)
+                        order_status = None
+                        order_status_count = 0
+                        while not order_status == 'COMPLETE':
+                            order_history = order_h if order_id == '-1' else self.broker.order_history(order_id)
+                            order_status = order_history[-1].get('status')
+                            order_status_count += 1
+                            # print(f'Count: {count}')
+                            if order_status_count < 10: time.sleep(1)
+                            else: break
                         
-                        if order_history[-1].get('status') == 'COMPLETE':
+                        if order_status == 'COMPLETE':
                             order_price = order_history[-1].get('average_price')
                             price = order_price if is_sip else last_order['sip_price']
                             qty = order_history[-1].get('filled_quantity')
