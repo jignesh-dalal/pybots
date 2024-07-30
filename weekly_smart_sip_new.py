@@ -150,7 +150,7 @@ class WeeklySmartSIP:
                             order_status = order_history[-1].get('status')
                             order_status_count += 1
                             # print(f'Count: {count}')
-                            if order_status_count < 10: time.sleep(1)
+                            if order_status_count < 20: time.sleep(1)
                             else: break
                         
                         if order_status == 'COMPLETE':
