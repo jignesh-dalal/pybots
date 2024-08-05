@@ -110,7 +110,7 @@ class WeeklySmartSIP:
                 ltp = self.instrument_token_dict[inst_token]['ltp']
                 
                 # if last_order is not None:
-                is_avg_down = WeeklySmartSIP.is_avg_down_order(ltp, last_order, sip_data)
+                # is_avg_down = WeeklySmartSIP.is_avg_down_order(ltp, last_order, sip_data)
 
                 if is_sip or is_avg_down:
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
