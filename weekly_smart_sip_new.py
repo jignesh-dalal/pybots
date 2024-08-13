@@ -203,7 +203,7 @@ if __name__ == "__main__":
             broker = KiteApp(enctoken)
         else: print(f'login error: {str(ex)}')
 
-    if broker is not None
+    if broker is not None:
         strategy = WeeklySmartSIP(broker=broker)
         # strategy._set_logger()
         strategy.on_trading_iteration()
