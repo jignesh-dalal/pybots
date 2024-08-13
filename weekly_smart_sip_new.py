@@ -188,11 +188,14 @@ if __name__ == "__main__":
     config = f.get_creds_by_user_id(user_id)
     
     enctoken = config["ACCESS_TOKEN"]
+    broker = None
     try:
         broker = KiteApp(enctoken, user_id)
         broker.profile()['user_id']
     except Exception as ex:
-        if 'NoneType' in str(ex):
+        broker = None
+        auto_login = config["AUTO_LOGIN"]      
+        if 'NoneType' in str(ex) and auto_login.lower() in ['true', '1', 't', 'y', 'yes']:
             pwd = config["PASSWORD"]
             totp_key = config["TOTP_KEY"]
             totp = get_totp(totp_key)
@@ -200,6 +203,7 @@ if __name__ == "__main__":
             broker = KiteApp(enctoken)
         else: print(f'login error: {str(ex)}')
 
-    strategy = WeeklySmartSIP(broker=broker)
-    # strategy._set_logger()
-    strategy.on_trading_iteration()
+    if broker is not None
+        strategy = WeeklySmartSIP(broker=broker)
+        # strategy._set_logger()
+        strategy.on_trading_iteration()
