@@ -241,6 +241,7 @@ if __name__ == "__main__":
             totp = get_totp(totp_key)
             enctoken = get_enctoken(user_id, pwd, totp)
             broker = KiteApp(enctoken)
+            f.update_values_by_row_key_in_worksheet(user_id, { 'ACCESS_TOKEN': enctoken })
         else: print(f'login error: {str(ex)}')
 
     strategy = SwingETFAvgDown(broker=broker)
