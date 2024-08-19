@@ -95,8 +95,8 @@ class SwingETFAvgDown:
                 max_buys = int(asset_data['max_buys'])
                 buy_count = int(asset_data['buy_count'])
 
-                if buy_count == max_buys:
-                    print(f'{f.bcolors.WARNING}Skipping run for {key} as max buy count reached..{f.bcolors.ENDC}')
+                if buy_count == 1:
+                    print(f'{f.bcolors.WARNING}Skipping run for {key} as buy count reached..{f.bcolors.ENDC}')
                     continue
 
                 exchange_symbol = asset_data['symbol']
@@ -122,8 +122,8 @@ class SwingETFAvgDown:
                 is_avg_down = SwingETFAvgDown.is_avg_down_order(ltp, last_order, asset_data)
 
                 if is_avg_down:
-                    buy_count += 1
                     amount = buy_amount * buy_count
+                    buy_count -= 1
                     o_price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     o_price = ltp if o_price == 0 else o_price
                     order_qty = math.floor(amount / o_price)
