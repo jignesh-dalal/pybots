@@ -59,7 +59,7 @@ class WeeklySmartSIP:
                 self.instrument_token_dict[inst_token]['sell'] = t['depth']['sell']
         
         self.tick_received = True
-        print(self.instrument_token_dict)
+        #print(self.instrument_token_dict)
         
     def on_trading_iteration(self):
         # self.load_data()
