@@ -20,14 +20,14 @@ class WeeklySmartSIP:
     [staticmethod]
     def is_sip_day():
         tdate = date.today()
-        is_tue_thu = tdate.isoweekday() in [2,4]
+        is_sip_day = tdate.isoweekday() in [2,3,4]
         start = datetime.now(timezone.utc).replace(hour=8, minute=55, second=0).time()
         end = datetime.now(timezone.utc).replace(hour=9, minute=58, second=0).time()
         current = datetime.now(timezone.utc).time()
 
         print(f"Weekday  : {tdate.strftime('%A')}")
 
-        return is_tue_thu and WeeklySmartSIP.time_in_range(start, end, current)
+        return is_sip_day and WeeklySmartSIP.time_in_range(start, end, current)
     
     [staticmethod]
     def is_avg_down_order(ltp, last_order, sip_data):
@@ -150,7 +150,7 @@ class WeeklySmartSIP:
                             order_status = order_history[-1].get('status')
                             order_status_count += 1
                             # print(f'Count: {count}')
-                            if order_status_count < 20: time.sleep(1)
+                            if order_status_count < 60: time.sleep(1)
                             else: break
                         
                         if order_status == 'COMPLETE':
