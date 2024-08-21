@@ -143,34 +143,36 @@ class WeeklySmartSIP:
                     }]
 
                     if order_id is not None:
-                        order_status = None
-                        order_status_count = 0
-                        while not order_status == 'COMPLETE':
-                            order_history = order_h if order_id == '-1' else self.broker.order_history(order_id)
-                            order_status = order_history[-1].get('status')
-                            order_status_count += 1
-                            # print(f'Count: {count}')
-                            if order_status_count < 60: time.sleep(1)
-                            else: break
+                        #order_status = None
+                        #order_status_count = 0
+                        #while not order_status == 'COMPLETE':
+                        #    order_history = order_h if order_id == '-1' else self.broker.order_history(order_id)
+                        #    order_status = order_history[-1].get('status')
+                        #    order_status_count += 1
+                        #    # print(f'Count: {count}')
+                        #    if order_status_count < 60: time.sleep(1)
+                        #    else: break
                         
-                        if order_status == 'COMPLETE':
-                            order_price = order_history[-1].get('average_price')
-                            price = order_price if is_sip else last_order['sip_price']
-                            qty = order_history[-1].get('filled_quantity')
-                            avg_down_price = order_price if is_avg_down else 0
-                            try:
-                                order_data = {
-                                    'last_order_id': order_id,
-                                    'last_order_qty': qty,
-                                    'last_sip_price': price,
-                                    'last_avg_down_price': avg_down_price
-                                }
-                                f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
-                                
-                                f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(qty)}', config['NOTIFICATION_KEY'])
-                            except Exception as ex:
-                                print('error with save order')
-                                print(ex)
+                        #if order_status == 'COMPLETE':
+                        #    order_price = order_history[-1].get('average_price')
+                        #    price = order_price if is_sip else last_order['sip_price']
+                        #    qty = order_history[-1].get('filled_quantity')
+                        #    avg_down_price = order_price if is_avg_down else 0
+                       
+                        avg_down_price = 0
+                        try:
+                            order_data = {
+                                'last_order_id': order_id,
+                                'last_order_qty': qty,
+                                'last_sip_price': price,
+                                'last_avg_down_price': avg_down_price
+                            }
+                            f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
+                            
+                        #    f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(qty)}', config['NOTIFICATION_KEY'])
+                        except Exception as ex:
+                            print('error with save order')
+                            print(ex)
         else:
             print(f'{f.bcolors.WARNING}Skipping run as no tick received.{f.bcolors.ENDC}')
 
