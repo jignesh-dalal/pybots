@@ -27,7 +27,7 @@ class SmartSIP:
 
         print(f"Weekday  : {tdate.strftime('%A')}")
 
-        return is_sip_day and WeeklySmartSIP.time_in_range(start, end, current)
+        return is_sip_day and SmartSIP.time_in_range(start, end, current)
     
     [staticmethod]
     def is_avg_down_order(ltp, last_order, sip_data):
@@ -96,7 +96,7 @@ class SmartSIP:
                 userId = self.broker.user_id
                 print(f'{f.bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{f.bcolors.ENDC}')
 
-                is_sip = False if skip_sip else True #WeeklySmartSIP.is_sip_day()
+                is_sip = False if skip_sip else True #SmartSIP.is_sip_day()
             
                 is_avg_down = False
                 last_order = {
@@ -110,7 +110,7 @@ class SmartSIP:
                 ltp = self.instrument_token_dict[inst_token]['ltp']
                 
                 # if last_order is not None:
-                # is_avg_down = WeeklySmartSIP.is_avg_down_order(ltp, last_order, sip_data)
+                # is_avg_down = SmartSIP.is_avg_down_order(ltp, last_order, sip_data)
 
                 if is_sip or is_avg_down:
                     price = self.instrument_token_dict[inst_token]['buy'][0]['price']
@@ -207,6 +207,6 @@ if __name__ == "__main__":
         else: print(f'login error: {str(ex)}')
 
     if broker is not None:
-        strategy = WeeklySmartSIP(broker=broker)
+        strategy = SmartSIP(broker=broker)
         # strategy._set_logger()
         strategy.on_trading_iteration()
