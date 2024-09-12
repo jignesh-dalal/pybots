@@ -30,14 +30,14 @@ class AvgDownSIP:
         return is_sip_day and AvgDownSIP.time_in_range(start, end, current)
     
     [staticmethod]
-    def is_avg_down_order(ltp, last_order, sip_data):
+    def is_avg_down_order(ltp, last_order, asset_data):
 
         if last_order is None:
             last_order = {}
             last_order['sip_price'] = 0
             last_order['avg_down_price'] = 0
 
-        avg_down_percent = float(sip_data['avg_down_percent']) / 100
+        avg_down_percent = float(asset_data['avg_down_percent']) / 100
         price = last_order['sip_price'] if (last_order['avg_down_price'] == 0) else last_order['avg_down_price'] 
         avg_down_price = price * (1 - avg_down_percent)
         percent_away = 0 if avg_down_price == 0 else ((ltp / avg_down_price) - 1) * 100
@@ -85,13 +85,21 @@ class AvgDownSIP:
                     print(f'{f.bcolors.WARNING}Skipping run for {key} as skip_job is set..{f.bcolors.ENDC}')
                     continue
 
-                sip_data = sip_dict[key]
-                exchange_symbol = sip_data['symbol']
+                asset_data = sip_dict[key]
+
+                max_buys = int(asset_data['max_buys'])
+                buy_count = int(asset_data['buy_count'])
+
+                if buy_count == max_buys:
+                    print(f'{f.bcolors.WARNING}Skipping run for {key} as max buy count reached..{f.bcolors.ENDC}')
+                    continue
+                
+                exchange_symbol = asset_data['symbol']
                 exchange = exchange_symbol[:3]
                 symbol = exchange_symbol[4:]
-                sip_amount = int(sip_data['sip_amount'])
-                inst_token = eval(sip_data['instrument_token'])
-                skip_sip = sip_data['skip_sip'].lower() in ['true', '1', 't', 'y', 'yes']
+                sip_amount = int(asset_data['sip_amount'])
+                inst_token = eval(asset_data['instrument_token'])
+                skip_sip = asset_data['skip_sip'].lower() in ['true', '1', 't', 'y', 'yes']
                 
                 userId = self.broker.user_id
                 print(f'{f.bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{f.bcolors.ENDC}')
@@ -100,24 +108,27 @@ class AvgDownSIP:
             
                 is_avg_down = False
                 last_order = {
-                    "id": sip_data['last_order_id'],
-                    "qty": int(sip_data['last_order_qty']),
-                    "sip_price": float(sip_data['last_sip_price']),
-                    "avg_down_price": float(sip_data['last_avg_down_price'])
+                    "id": asset_data['last_order_id'],
+                    "qty": int(asset_data['last_order_qty']),
+                    "sip_price": float(asset_data['last_sip_price']),
+                    "avg_down_price": float(asset_data['last_avg_down_price'])
                 }
 
                 # print(last_order)
                 ltp = self.instrument_token_dict[inst_token]['ltp']
                 
                 # if last_order is not None:
-                is_avg_down = AvgDownSIP.is_avg_down_order(ltp, last_order, sip_data)
+                is_avg_down = AvgDownSIP.is_avg_down_order(ltp, last_order, asset_data)
 
                 if is_sip or is_avg_down:
-                    price = self.instrument_token_dict[inst_token]['buy'][0]['price']
-                    price = ltp if price == 0 else price
-                    qty = math.floor(sip_amount / price)
+                    buy_count += 1
+                    factor = (buy_count / 2) if buy_count > 1 else buy_count
+                    amount = sip_amount * factor
+                    o_price = self.instrument_token_dict[inst_token]['buy'][0]['price']
+                    o_price = ltp if o_price == 0 else o_price
+                    order_qty = math.floor(amount / o_price)
 
-                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {qty} quantity at {price} price..{f.bcolors.ENDC}')
+                    print(f'{f.bcolors.OKGREEN}Placing BUY order for {order_qty} quantity at {o_price} price amounting to {amount}{f.bcolors.ENDC}')
 
                     order_id = self.broker.place_order(variety=self.broker.VARIETY_REGULAR,
                             exchange=self.broker.EXCHANGE_NSE,
@@ -126,7 +137,7 @@ class AvgDownSIP:
                             quantity=qty,
                             product=self.broker.PRODUCT_CNC,
                             order_type=self.broker.ORDER_TYPE_LIMIT,
-                            price=price,
+                            price=o_price,
                             validity=None,
                             disclosed_quantity=None,
                             trigger_price=None,
@@ -138,8 +149,8 @@ class AvgDownSIP:
                     # order_id = '-1'
                     order_h = [{
                         'status': 'COMPLETE',
-                        'average_price': price,
-                        'filled_quantity': qty
+                        'average_price': o_price,
+                        'filled_quantity': order_qty
                     }]
 
                     if order_id is not None:
@@ -159,12 +170,11 @@ class AvgDownSIP:
                         #    qty = order_history[-1].get('filled_quantity')
                         #    avg_down_price = order_price if is_avg_down else 0
                        
-                        avg_down_price = 0
+                        avg_down_price = o_price
                         try:
                             order_data = {
                                 'last_order_id': order_id,
                                 'last_order_qty': qty,
-                                'last_sip_price': price,
                                 'last_avg_down_price': avg_down_price
                             }
                             f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
