@@ -122,7 +122,7 @@ class AvgDownSIP:
 
                 if is_sip or is_avg_down:
                     buy_count += 1
-                    factor = (buy_count / 2) if buy_count > 1 else buy_count
+                    factor = ((buy_count / 2) + 0.5) if buy_count > 1 else buy_count
                     amount = sip_amount * factor
                     o_price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     o_price = ltp if o_price == 0 else o_price
