@@ -2,7 +2,7 @@ name: run smart_sip.py
 
 on:
   schedule:
-   - cron: '25 9 * * 2,4' # At 09:25 UTC on Tuesday and Thursday.
+   - cron: '20 9 * * 2,4' # At 09:25 UTC on Tuesday and Thursday.
   repository_dispatch:
   workflow_dispatch:
 jobs:
