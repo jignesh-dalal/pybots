@@ -134,7 +134,7 @@ class AvgDownSIP:
                             exchange=self.broker.EXCHANGE_NSE,
                             tradingsymbol=symbol,
                             transaction_type=self.broker.TRANSACTION_TYPE_BUY,
-                            quantity=qty,
+                            quantity=order_qty,
                             product=self.broker.PRODUCT_CNC,
                             order_type=self.broker.ORDER_TYPE_LIMIT,
                             price=o_price,
