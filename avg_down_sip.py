@@ -174,12 +174,12 @@ class AvgDownSIP:
                         try:
                             order_data = {
                                 'last_order_id': order_id,
-                                'last_order_qty': qty,
+                                'last_order_qty': order_qty,
                                 'last_avg_down_price': avg_down_price
                             }
                             f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
                             
-                        #    f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(qty)}', config['NOTIFICATION_KEY'])
+                        #    f.notification(f'Bought {exchange_symbol}, Buy Price {str(order_price)} - Quantity {str(order_qty)}', config['NOTIFICATION_KEY'])
                         except Exception as ex:
                             print('error with save order')
                             print(ex)
