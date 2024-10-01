@@ -165,7 +165,7 @@ class SmartSIP:
                                 'last_order_id': order_id,
                                 'last_order_qty': qty,
                                 'last_sip_price': price,
-                                'last_avg_down_price': avg_down_price
+                                #'last_avg_down_price': avg_down_price
                             }
                             f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
                             
