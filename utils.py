@@ -62,7 +62,7 @@ def update_values_by_row_key_in_worksheet(row_key, values: Dict[str, str], sprea
             prop_key = prop_list[i]
             if prop_key in values.keys():
                 value_to_update = values[prop_key]
-                # print(f"Col->{i} - Prop->{prop_key} - Val->{value_to_update}")
+                print(f"Col->{i} - Prop->{prop_key} - Val->{value_to_update}")
                 worksheet.update_cell(row_number, i+1, value_to_update)
 
 # all_creds_dict = None
