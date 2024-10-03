@@ -175,7 +175,8 @@ class AvgDownSIP:
                             order_data = {
                                 'last_order_id': order_id,
                                 'last_order_qty': order_qty,
-                                'last_avg_down_price': avg_down_price
+                                'last_avg_down_price': avg_down_price,
+                                'buy_count': buy_count
                             }
                             f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
                             
