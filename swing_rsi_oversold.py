@@ -119,7 +119,7 @@ class SwingRSIOversoldStrategy:
                         try:
                             # PLACE GTT ORDER FOR TARGET
                             gtt_order_id = self.broker.place_gtt(trigger_type=self.broker.GTT_TYPE_SINGLE, 
-                                tradingsymbol=symbol,
+                                tradingsymbol=symbol[4:],
                                 exchange=self.broker.EXCHANGE_NSE,
                                 trigger_values=[target_price],
                                 last_price=o_price,
@@ -143,7 +143,7 @@ class SwingRSIOversoldStrategy:
                             }
                             
                             # UPDATE SHEET
-                            f.update_values_by_row_key_in_worksheet(key, order_data, worksheet_name=wks_name)
+                            f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
 
                         except Exception as ex:
                             print('error with save order')
