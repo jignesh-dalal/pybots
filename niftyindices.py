@@ -11,20 +11,20 @@ class NiftyIndices:
         self.broker = broker
 
         self.broad_indices = {
-                'NIFTY 50' : 'NIFTY',
-                'NIFTY NEXT 50' : 'NIFTYJR',
+                'NIFTY 50' : { 'code': 'NIFTY', 'itoken': '256265'},
+                'NIFTY NEXT 50' : { 'code': 'NIFTYJR', 'itoken': '270857' },
                 # 'NIFTY 100',
                 # 'NIFTY 200',
                 # 'NIFTY 500',
-                'NIFTY MIDCAP 150' : 'NIFTYMIDCAP150',
+                'NIFTY MIDCAP 150' : { 'code': 'NIFTYMIDCAP150', 'itoken': '266249' },
                 # 'NIFTY MIDCAP 50',
                 # 'NIFTY MIDCAP 100',
-                'NIFTY SMALLCAP 250' : 'NIFTYSMLCAP250',
+                'NIFTY SMALLCAP 250' : { 'code': 'NIFTYSMLCAP250', 'itoken': '267273' },
                 # 'NIFTY SMALLCAP 50',
                 # 'NIFTY SMALLCAP 100',
                 # 'NIFTY LARGEMIDCAP 250',
                 #'NIFTY MIDSMALLCAP 400',
-                'NIFTY MICROCAP 250_': 'NIFTY_MICROCAP250'
+                'NIFTY MICROCAP 250_': { 'code': 'NIFTY_MICROCAP250', 'itoken': '290569' }
         }
 
         self.nse = []
@@ -40,10 +40,11 @@ class NiftyIndices:
         self.nse = self.broker.instruments('NSE')
 
         df = pd.DataFrame()
-        for index, index_symbol in self.broad_indices.items():
+        for index, index_data in self.broad_indices.items():
             df_index = f.get_nse_index_stocklist(index)
-            df_index['Index'] = index_symbol
-            df_index['IToken'] = df_index.apply(self.get_itoken, axis=1)
+            df_index['Index'] = index_data['code']
+            df_index['IToken'] = index_data['itoken']
+            df_index['SymbolIToken'] = df_index.apply(self.get_itoken, axis=1)
             
             df = pd.concat([df, df_index], ignore_index=True)
             time.sleep(0.5)
