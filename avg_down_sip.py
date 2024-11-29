@@ -100,6 +100,7 @@ class AvgDownSIP:
                 sip_amount = int(asset_data['sip_amount'])
                 inst_token = eval(asset_data['instrument_token'])
                 skip_sip = asset_data['skip_sip'].lower() in ['true', '1', 't', 'y', 'yes']
+                smart_sip = asset_data['smart_sip'].lower() in ['true', '1', 't', 'y', 'yes']
                 
                 userId = self.broker.user_id
                 print(f'{f.bcolors.HEADER}- - {userId} Checking {exchange_symbol} - -{f.bcolors.ENDC}')
@@ -122,7 +123,7 @@ class AvgDownSIP:
 
                 if is_sip or is_avg_down:
                     buy_count += 1
-                    factor = ((buy_count / 2) + 0.5) if buy_count > 1 else buy_count
+                    factor = ((buy_count / 2) + 0.5) if smart_sip and buy_count > 1 else 1
                     amount = sip_amount * factor
                     o_price = self.instrument_token_dict[inst_token]['buy'][0]['price']
                     o_price = ltp if o_price == 0 else o_price
