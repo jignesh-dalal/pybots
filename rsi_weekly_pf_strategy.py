@@ -1,10 +1,16 @@
 import pandas as pd
 import pandas_ta as ta
 import utils as f
-import math
+import argparse
 
 from kite_trade import *
 from datetime import datetime, timedelta
+
+# COMMAND LINE ARGS
+parser = argparse.ArgumentParser()
+parser.add_argument("--uid", help="enter user id", default="SJ0281")
+parser.add_argument("--wks", help="enter worksheet name", default="RSIOversoldWeekly")
+args = parser.parse_args()
 
 # config = {
 #     'USER_ID': 'SJ0281',
@@ -12,7 +18,7 @@ from datetime import datetime, timedelta
 #     'TOTP_KEY': '',
 #     'ACCESS_TOKEN': 'EFmypalwkfU/igrlrUAwjfwjitY/e0xzR327GxVtI+pJTBb6hGEzvuNhdRdxYUOUzE6Re91lYbviTzUDf9Kr+4t5BmBFEyKQ14eytCx2LI7gacSugBBcNg==',
 # }
-user_id = 'SJ0281'
+user_id = args.uid
 config = f.get_creds_by_user_id(user_id)
 
 enctoken = config["ACCESS_TOKEN"]
@@ -45,7 +51,7 @@ def on_ws_ticks(ws, ticks):
     
     tick_received = True
 
-wks_name = "RSIOversoldWeekly"
+wks_name = args.wks
 assets = f.get_all_records_from_sheet(worksheet_name=wks_name)
 symbol_token_dict = {v['symbol_token']: {'ltp': -1, 'buy': [], 'sell': [], 'qty': v['qty'], 'avg_price': v['avg_price']} for v in assets}
 symbol_tokens = list(symbol_token_dict.keys())
