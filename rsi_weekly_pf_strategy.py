@@ -65,8 +65,6 @@ while not tick_received:
 
 if tick_received:
 
-    BUY_QTY_PCT_DIFF = 0.05
-    SELL_QTY_PCT_DIFF = 0.02
     to_date = datetime.now()
     from_date = to_date - timedelta(days=700)
     logic = {   'iOpen'  : 'first',
@@ -138,6 +136,8 @@ if tick_received:
         sell_count = int(asset['sell_count'])
         min_weight = asset['min_pc']
         max_weight = asset['max_pc']
+        buy_pc_diff = asset['buy_pc_diff']
+        sell_pc_diff = asset['sell_pc_diff']
 
         df_latest_rsi = df['RSI_13'].iloc[-1]
         # # SIMULATION
@@ -197,7 +197,7 @@ if tick_received:
         try:
             order_id = ''
             # If quantity is positive then buy, if it's negative then sell
-            if quantity_difference > 0 and quantity_pct_difference > BUY_QTY_PCT_DIFF:
+            if quantity_difference > 0 and quantity_pct_difference > buy_pc_diff:
                 
                 if cash_balance < shares_value and cash_symbol_balance >= shares_value:
                     cash_shares_value = shares_value - cash_balance
@@ -251,7 +251,7 @@ if tick_received:
                 #                     trailing_stoploss=None,
                 #                     tag="TradingPython")
 
-            elif quantity_difference < 0 and quantity_pct_difference > SELL_QTY_PCT_DIFF:
+            elif quantity_difference < 0 and quantity_pct_difference > sell_pc_diff:
 
                 order_qty = abs(quantity_difference) 
                 order_price = symbol_token_dict[symbol_token]['sell'][0]['price']
