@@ -168,7 +168,7 @@ if tick_received:
         if df_latest_rsi > 80 and sell_count == 1:
             signal = -1
 
-        print(f"Signal: {signal}")
+        print(f"Symbol: {symbol} | RSI: {df_latest_rsi} | Signal: {signal}")
 
         ltp = symbol_token_dict[symbol_token]['ltp']
         quantity = symbol_token_dict[symbol_token]['qty']
