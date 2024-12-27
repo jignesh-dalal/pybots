@@ -168,7 +168,7 @@ if tick_received:
         if df_latest_rsi > 80 and sell_count == 1:
             signal = -1
 
-        message = f"{symbol}\nRSI: {df_latest_rsi:.2f}\nSignal: {signal}"
+        message = f"{symbol}\nRSI: {df_latest_rsi:.2f} | Signal: {signal}"
         print(f"Symbol: {symbol} | RSI: {df_latest_rsi:.2f} | Signal: {signal}")
 
         ltp = symbol_token_dict[symbol_token]['ltp']
@@ -200,7 +200,7 @@ if tick_received:
         quantity_pct_difference = abs(quantity_difference / quantity)
 
         print(f"Currently own {quantity} shares of {symbol} at {ltp} but need {new_quantity}, so the difference is {quantity_difference} and percent difference is {quantity_pct_difference:.2f}")
-        message += f"\nQTY Expected: {new_quantity}\nActual: {quantity}\n% Diff: {quantity_pct_difference*100:.2f}%" 
+        message += f"\nQTY Expected: {new_quantity} | Actual: {quantity} | Diff: {quantity_pct_difference*100:.2f}%" 
         try:
             order_id = ''
             # If quantity is positive then buy, if it's negative then sell
