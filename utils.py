@@ -26,6 +26,16 @@ def notification(title, description, notification_key):
 
     requests.post(url, data=myobj)
 
+def send_telegram_message(message: str):
+    try:
+        TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+    except KeyError:
+        TOKEN = json.loads(read_file('config/creds.json'))["TELEGRAM_BOT_TOKEN"]
+
+    CHAT_ID = '-4646261008'
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}"
+    _ = requests.get(url).json()
+
 def read_file(file):
     try:
         with open(file, "r") as f:
@@ -71,11 +81,11 @@ def get_creds(spreadsheet_name="trading_python"):
     #     return all_creds_dict
     
     # try:
-    #     GOOGLE_JSON = os.environ["GOOGLE_JSON"]
+    #     config = os.environ["GOOGLE_JSON"]
     # except KeyError:
-    #     GOOGLE_JSON = read_file('config/creds.json')
+    #     config = read_file('config/creds.json')
 
-    # credentials = json.loads(GOOGLE_JSON)
+    # credentials = json.loads(config)["GOOGLE_JSON"]
     # # print(type(credentials))
     # gc = gspread.service_account_from_dict(credentials)
     # sh = gc.open("trading_python")
@@ -104,11 +114,11 @@ def get_creds_by_user_id(user_id):
 
 def get_spreadsheet_by_name(name):
     try:
-        GOOGLE_JSON = os.environ["GOOGLE_JSON"]
+        config = os.environ["GOOGLE_JSON"]
     except KeyError:
-        GOOGLE_JSON = read_file('config/creds.json')
+        config = read_file('config/creds.json')
 
-    credentials = json.loads(GOOGLE_JSON)
+    credentials = json.loads(config)["GOOGLE_JSON"]
     # print(type(credentials))
     gc = gspread.service_account_from_dict(credentials)
     sh = gc.open(name)
