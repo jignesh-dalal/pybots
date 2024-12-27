@@ -26,4 +26,5 @@ jobs:
       - name: execute py script # run sip_bot.py
         env:
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: python rsi_weekly_pf_strategy.py --uid 'JBU423' --wks 'RSIOversoldWeekly_JBU423'
