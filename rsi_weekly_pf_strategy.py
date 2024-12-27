@@ -168,7 +168,8 @@ if tick_received:
         if df_latest_rsi > 80 and sell_count == 1:
             signal = -1
 
-        print(f"Symbol: {symbol} | RSI: {df_latest_rsi:.2f} | Signal: {signal}")
+        message = f"Symbol: {symbol} | RSI: {df_latest_rsi:.2f} | Signal: {signal}"
+        print(message)
 
         ltp = symbol_token_dict[symbol_token]['ltp']
         quantity = symbol_token_dict[symbol_token]['qty']
@@ -199,7 +200,7 @@ if tick_received:
         quantity_pct_difference = abs(quantity_difference / quantity)
 
         print(f"Currently own {quantity} shares of {symbol} at {ltp} but need {new_quantity}, so the difference is {quantity_difference} and percent difference is {quantity_pct_difference:.2f}")
-
+        message += f"\n Qty. Expected: {new_quantity} | Actual: {quantity} | % Diff: {quantity_pct_difference:.2f}" 
         try:
             order_id = ''
             # If quantity is positive then buy, if it's negative then sell
@@ -239,7 +240,7 @@ if tick_received:
                 order_price = ltp if order_price == 0 else order_price
 
                 print(f"Placing BUY order for {symbol} with {order_qty} quantity at {order_price} price")
-
+                message += f"\n BUY Qty.: {order_qty} | Price: {order_price}"
 
                 # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
                 #                     exchange=broker.EXCHANGE_NSE,
@@ -264,6 +265,7 @@ if tick_received:
                 order_price = ltp if order_price == 0 else order_price
 
                 print(f"Placing SELL order for {symbol} with {order_qty} quantity at {order_price} price")
+                message += f"\n SELL Qty.: {order_qty} | Price: {order_price}"
 
                 # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
                 #                     exchange=broker.EXCHANGE_NSE,
@@ -280,7 +282,8 @@ if tick_received:
                 #                     stoploss=None,
                 #                     trailing_stoploss=None,
                 #                     tag="TradingPython")
-                
+
+            f.send_telegram_message(message)
             if order_id:
                 order_data = {
                     'qty': new_quantity,
