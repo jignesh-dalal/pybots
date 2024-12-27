@@ -34,7 +34,6 @@ def send_telegram_message(message: str):
 
     CHAT_ID = '-4646261008'
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}"
-    print(f"MSG: {url}")
     _ = requests.get(url)
 
 def read_file(file):
