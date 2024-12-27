@@ -115,10 +115,11 @@ def get_creds_by_user_id(user_id):
 def get_spreadsheet_by_name(name):
     try:
         config = os.environ["GOOGLE_JSON"]
+        credentials = json.loads(config)
     except KeyError:
         config = read_file('config/creds.json')
+        credentials = json.loads(config)["GOOGLE_JSON"]
 
-    credentials = json.loads(config)["GOOGLE_JSON"]
     # print(type(credentials))
     gc = gspread.service_account_from_dict(credentials)
     sh = gc.open(name)
