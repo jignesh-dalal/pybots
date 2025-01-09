@@ -88,7 +88,7 @@ if tick_received:
     margins = broker.margins() 
     cash_balance = margins.get('equity', {}).get('available', {}).get('cash', 0)
 
-    print(f"Portfolio value: {portfolio_value}, Cash balance: {cash_balance}")
+    print(f"Portfolio value: {portfolio_value:.2f}, Cash balance: {cash_balance:.2f}")
 
     # asset = assets[0]
 
@@ -193,7 +193,7 @@ if tick_received:
         
         # Calculate how many shares we need to buy or sell
         shares_value = portfolio_value * weight
-        print(f"The current portfolio value is {portfolio_value} and the weight needed is {weight:.2f} compared to current weight {cur_weight:.2f}, so we should buy {shares_value}")
+        print(f"The current portfolio value is {portfolio_value:.2f} and the weight needed is {weight:.2f} compared to current weight {cur_weight:.2f}, so we should buy {shares_value:.2f}")
 
         new_quantity = shares_value // ltp
         quantity_difference = new_quantity - quantity
@@ -214,7 +214,7 @@ if tick_received:
                     cash_quantity_difference = cash_new_quantity - cash_symbol_qty
                     cash_order_qty = abs(cash_quantity_difference)
 
-                    print(f"Currently own {quantity} shares of {cash_symbol} at {cash_symbol_ltp} but need {cash_new_quantity}, so the difference is {cash_quantity_difference}")
+                    print(f"Currently own {cash_symbol_qty} shares of {cash_symbol} at {cash_symbol_ltp} but need {cash_new_quantity}, so the difference is {cash_quantity_difference}")
 
                     # broker.place_order(variety=broker.VARIETY_REGULAR,
                     #                             exchange=broker.EXCHANGE_NSE,
