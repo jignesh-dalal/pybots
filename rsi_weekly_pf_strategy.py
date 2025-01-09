@@ -232,8 +232,8 @@ if tick_received:
                     #                             trailing_stoploss=None,
                     #                             tag="TradingPython")
                     
-                    # UPDATE SHEET
-                    f.update_values_by_row_key_in_worksheet(cash_symbol, {'qty': cash_new_quantity}, worksheet_name=wks_name)
+                    ## UPDATE SHEET
+                    #f.update_values_by_row_key_in_worksheet(cash_symbol, {'qty': cash_new_quantity}, worksheet_name=wks_name)
                 
                 order_qty = abs(quantity_difference) 
                 order_price = symbol_token_dict[symbol_token]['buy'][0]['price']
