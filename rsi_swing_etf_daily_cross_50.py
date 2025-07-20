@@ -77,7 +77,12 @@ instruments = f.get_all_records_from_sheet(worksheet_name=wks_name)
 instruments = [x for x in instruments if x['AllowTrade'] == 1 and x['SymbolIToken'] != '']
 
 buy_index_codes = df_buy['nsecode'].tolist() if 'nsecode' in df_buy.columns else []
+if buy_index_codes:
+    buy_index_codes = [x['nsecode'] for x in instruments if x['nsecode'] in buy_index_codes]
+
 sell_index_codes = df_sell['nsecode'].tolist() if 'nsecode' in df_sell.columns else []
+if sell_index_codes:
+    sell_index_codes = [x['nsecode'] for x in instruments if x['nsecode'] in sell_index_codes]
 
 index_codes = list(set(buy_index_codes + sell_index_codes))
 symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments if v['nsecode'] in index_codes}
