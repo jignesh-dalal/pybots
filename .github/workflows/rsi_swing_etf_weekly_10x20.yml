@@ -27,4 +27,4 @@ jobs:
         env:
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        run: python rsi_swing_etf_weekly_10x20.py --uid 'SJ0281' --wks 'RSIOversoldWeekly'
+        run: python rsi_swing_etf_weekly_10x20.py --uid 'SJ0281' --wks 'CI_ETF_Indices'
