@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # COMMAND LINE ARGS
 parser = argparse.ArgumentParser()
 parser.add_argument("--uid", help="enter user id", default="SJ0281")
-parser.add_argument("--wks", help="enter worksheet name", default="RSIOversoldWeekly")
+parser.add_argument("--wks", help="enter worksheet name", default="CI_ETF_Indices")
 args = parser.parse_args()
 
 # config = {
@@ -66,13 +66,12 @@ ci_sell_data = {
 df_buy = f.get_chartink_data(ci_url, ci_buy_data)
 df_sell = f.get_chartink_data(ci_url, ci_sell_data)
 
-
 # %%
 if df_buy.empty and df_sell.empty:
     print("No trades available")
     sys.exit(0)
 
-wks_name = "CI_ETF_Indices"
+wks_name = args.wks
 
 instruments = f.get_all_records_from_sheet(worksheet_name=wks_name)
 instruments = [x for x in instruments if x['AllowTrade'] == 1 and x['SymbolIToken'] != '']
@@ -173,27 +172,24 @@ for bcode in buy_index_codes:
         #         print(ex)
 
 if message:
+    message = f"BUY Weekly EMA 10 x 20\n{message}"
     f.send_telegram_message(message)
 
 # %%
 
-# for scode in sell_index_codes:
-#     asset = symbol_token_dict[scode]
-#     in_position = bool(asset['in_position'])
-    
-#     if in_position:
-#         symbol = asset['symbol']
-#         order_price = asset['ltp']
-#         order_qty = abs(asset['buy_amount'] / order_price)
-#         stop_loss_price = asset['ohlc']['low'] - STOP_LOSS_POINTS
+message = ''
 
-#         positions.append({
-#             'date': datetime.today(),
-#             'type': 'BUY',
-#             'entry': order_price,
-#             'stop_loss': stop_loss_price
-#         })
-#         in_position = False
+for scode in sell_index_codes:
+    asset = next(r for r in symbol_token_dict.values() if r['index_token'] == scode)
+    in_position = bool(asset['in_position'])
+    
+    if in_position:
+        symbol = asset['symbol']
+        order_price = asset['ltp']
+        order_qty = abs(asset['buy_amount'] / order_price)
+
+        in_position = False
+        message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
 
 #         broker.place_order(variety=broker.VARIETY_REGULAR,
 #                                     exchange=broker.EXCHANGE_NSE,
@@ -228,27 +224,6 @@ if message:
 #                 print('error with save order')
 #                 print(ex)
 
-#     # elif in_position:
-#     #     if row['sell_signal']:
-#     #         exit_price = row['Close']
-#     #         positions[-1]['exit'] = exit_price
-#     #         positions[-1]['exit_date'] = row.name
-#     #         in_position = False
-#     #     elif row['Low'] <= stop_loss_price:
-#     #         exit_price = stop_loss_price
-#     #         positions[-1]['exit'] = exit_price
-#     #         positions[-1]['exit_date'] = row.name
-#     #         positions[-1]['exit_reason'] = 'STOP_LOSS'
-#     #         in_position = False
-
-# # --- OUTPUT RESULTS ---
-# results = pd.DataFrame(positions)
-
-# if not results.empty and 'exit' in results.columns:
-#     results['pnl'] = results['exit'] - results['entry']
-#     results['pnl_percent'] = (results['pnl'] / results['entry']) * 100
-#     print(results[['date', 'type', 'entry', 'exit', 'exit_date', 'pnl', 'pnl_percent']])
-#     print("\nTotal Trades:", len(results))
-#     print("Average PnL %:", results['pnl_percent'].mean())
-# else:
-#     print("No trades were executed.")
+if message:
+    message = f"SELL Weekly EMA 10 x 20\n{message}"
+    f.send_telegram_message(message)
