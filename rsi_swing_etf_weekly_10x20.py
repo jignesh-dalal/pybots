@@ -177,7 +177,7 @@ for bcode in buy_index_codes:
         #         print(ex)
 
 if message:
-    message = f"BUY Weekly EMA 10 x 20\n{message}"
+    message = f"ETF BUY Weekly EMA 10 x 20\n{message}"
     f.send_telegram_message(message)
 
 # %%
@@ -230,5 +230,5 @@ for scode in sell_index_codes:
 #                 print(ex)
 
 if message:
-    message = f"SELL Weekly EMA 10 x 20\n{message}"
+    message = f"ETF SELL Weekly EMA 10 x 20\n{message}"
     f.send_telegram_message(message)
