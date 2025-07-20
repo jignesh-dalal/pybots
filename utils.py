@@ -167,6 +167,34 @@ def read_toppers_from_excel(spreadsheet_name="trading_python", worksheet_name="T
     worksheet = sh.worksheet(worksheet_name)
     return worksheet.acell('A1').value
 
+# Convert column number to letter
+def col_to_letter(col_num):
+    result = ''
+    while col_num:
+        col_num, remainder = divmod(col_num - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
+
+def write_df_to_excel_sheet_in_chunks(df, spreadsheet_name="trading_python", worksheet_name="Logs", chunk_size=1000):
+    headers = df.columns.values.tolist()
+    rows = df.values.tolist()
+    # Combine headers and data
+    all_data = [headers] + rows
+    
+    sh = get_spreadsheet_by_name(spreadsheet_name)
+    worksheet = sh.worksheet(worksheet_name)
+
+    # Resize the sheet to fit all data
+    worksheet.resize(rows=len(all_data), cols=len(headers))
+
+    # Write in chunks
+    for i in range(0, len(all_data), chunk_size):
+        chunk = all_data[i:i + chunk_size]
+        start_row = i + 1
+        end_row = start_row + len(chunk) - 1
+        end_col_letter = col_to_letter(len(headers))
+        range_str = f"A{start_row}:{end_col_letter}{end_row}"
+        worksheet.update(range_str, chunk)
 
 niftyindices_headers = {
     'Connection': 'keep-alive',
@@ -193,3 +221,14 @@ def get_nse_index_stocklist(index_name):
     df.index = df.index + 1
 
     return df
+
+def get_chartink_data(url: str, data):
+    with requests.Session() as s:
+        r = s.get(url)
+        soup = bs(r.text, 'html.parser')
+        s.headers['X-CSRF-TOKEN'] = soup.select_one('[name=csrf-token]')['content']
+        s.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        r = s.post('https://chartink.com/screener/process', data=data).json()
+        df = pd.DataFrame(r['data'])
+
+        return df
