@@ -7,6 +7,7 @@ import pandas as pd
 
 from datetime import datetime
 from typing import Dict, Any
+from bs4 import BeautifulSoup as bs
 
 class bcolors:
     HEADER = '\033[95m'
