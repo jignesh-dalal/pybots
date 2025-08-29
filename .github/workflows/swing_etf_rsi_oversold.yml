@@ -1,0 +1,30 @@
+name: run swing_etf_rsi_oversold.py
+
+on:
+  schedule:
+    - cron: '45 3,6,9 * * 1-5' # At minute 45 past hour 3, 6, and 9 on every day-of-week from Monday through Friday.
+  #repository_dispatch: # api trigger
+  workflow_dispatch: # manual trigger
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: checkout repo content
+        uses: actions/checkout@v4 # checkout the repository content to github runner
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.1' # install the python version needed
+          
+      - name: install python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: execute py script # run sip_bot.py
+        env:
+          GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: python swing_etf_rsi_oversold.py --uid 'SJ0281' --wks 'RSIOversold'
