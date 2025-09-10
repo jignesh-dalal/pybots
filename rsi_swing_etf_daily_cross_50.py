@@ -39,7 +39,6 @@ except Exception as ex:
         broker = KiteApp(enctoken)
         f.update_values_by_row_key_in_worksheet(user_id, { 'ACCESS_TOKEN': enctoken })
     else: print(f'login error: {str(ex)}')
-0
 
 def on_ws_ticks(ws, ticks):
     global tick_received, symbol_token_dict
@@ -57,7 +56,7 @@ def on_ws_ticks(ws, ticks):
 # %%
 ci_url = 'https://chartink.com/screener/all-indices-57'
 ci_buy_data = {
-    'scan_clause': '( {45603} ( latest rsi( 13 ) > 50 and 1 day ago  rsi( 13 ) <= 50 ) )'
+    'scan_clause': '( {45603} ( latest rsi( 13 ) >= 50 and 1 day ago  rsi( 13 ) <= 50 ) )'
 }
 ci_sell_data = {
     'scan_clause': '( {45603} ( latest rsi( 13 ) < 50 and 1 day ago  rsi( 13 ) >= 50 ) )'
@@ -77,12 +76,7 @@ instruments = f.get_all_records_from_sheet(worksheet_name=wks_name)
 instruments = [x for x in instruments if x['AllowTrade'] == 1 and x['SymbolIToken'] != '']
 
 buy_index_codes = df_buy['nsecode'].tolist() if 'nsecode' in df_buy.columns else []
-if buy_index_codes:
-    buy_index_codes = [x['nsecode'] for x in instruments if x['nsecode'] in buy_index_codes]
-
 sell_index_codes = df_sell['nsecode'].tolist() if 'nsecode' in df_sell.columns else []
-if sell_index_codes:
-    sell_index_codes = [x['nsecode'] for x in instruments if x['nsecode'] in sell_index_codes]
 
 index_codes = list(set(buy_index_codes + sell_index_codes))
 symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments if v['nsecode'] in index_codes}
@@ -105,10 +99,65 @@ if not tick_received:
     sys.exit(0)
 
 
-symbol_token_dict
+#symbol_token_dict
 
 # %%
 STOP_LOSS_POINTS = 10
+positions = []
+
+message = ''
+
+for scode in sell_index_codes:
+    asset = next(r for r in symbol_token_dict.values() if r['index_token'] == scode)
+    in_position = bool(asset['in_position'])
+    
+    if in_position:
+        symbol = asset['symbol']
+        order_price = asset['ltp']
+        order_qty = asset['OrderQty']
+
+        in_position = False
+        message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
+
+        try:
+
+            order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                        exchange=broker.EXCHANGE_NSE,
+                                        tradingsymbol=symbol,
+                                        transaction_type=broker.TRANSACTION_TYPE_SELL,
+                                        quantity=order_qty,
+                                        product=broker.PRODUCT_CNC,
+                                        order_type=broker.ORDER_TYPE_LIMIT,
+                                        price=order_price,
+                                        validity=None,
+                                        disclosed_quantity=None,
+                                        trigger_price=None,
+                                        squareoff=None,
+                                        stoploss=None,
+                                        trailing_stoploss=None,
+                                        tag="TradingPython")
+            
+            if order_id is not None:
+                order_data = {
+                    'InTrade': in_position,
+                    'OrderId': order_id,
+                    'OrderQty': order_qty,
+                    'OrderPrice': order_price,
+                    'SLOrderId': ''
+                }
+                
+                # UPDATE SHEET
+                f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+
+        except Exception as ex:
+            print('error with save order')
+            print(ex)
+
+if message:
+    message = f"ETF SELL Daily RSI13 x 50\n{message}"
+    f.send_telegram_message(message)
+
+# %%
 
 message = ''
 
@@ -125,109 +174,57 @@ for bcode in buy_index_codes:
         in_position = True
         message += f"{symbol}\nBUY: {order_qty} | Price: {order_price}"
 
-        # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-        #                     exchange=broker.EXCHANGE_NSE,
-        #                     tradingsymbol=symbol,
-        #                     transaction_type=broker.TRANSACTION_TYPE_BUY,
-        #                     quantity=order_qty,
-        #                     product=broker.PRODUCT_CNC,
-        #                     order_type=broker.ORDER_TYPE_LIMIT,
-        #                     price=order_price,
-        #                     validity=None,
-        #                     disclosed_quantity=None,
-        #                     trigger_price=None,
-        #                     squareoff=None,
-        #                     stoploss=None,
-        #                     trailing_stoploss=None,
-        #                     tag="TradingPython")
-        
-        # if order_id is not None:
-        #     try:
-        #         # PLACE GTT ORDER FOR STOP LOSS
-        #         gtt_order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
-        #             tradingsymbol=symbol,
-        #             exchange=broker.EXCHANGE_NSE,
-        #             trigger_values=[stop_loss_price+1],
-        #             last_price=order_price,
-        #             orders=[
-        #                 {
-        #                     'exchange': broker.EXCHANGE_NSE,
-        #                     'transaction_type': broker.TRANSACTION_TYPE_SELL,
-        #                     'quantity': order_qty,
-        #                     'order_type': broker.ORDER_TYPE_LIMIT,
-        #                     'product': broker.PRODUCT_CNC,
-        #                     'price': stop_loss_price
-        #                 }
-        #             ])
+        try:
+
+            order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                exchange=broker.EXCHANGE_NSE,
+                                tradingsymbol=symbol,
+                                transaction_type=broker.TRANSACTION_TYPE_BUY,
+                                quantity=order_qty,
+                                product=broker.PRODUCT_CNC,
+                                order_type=broker.ORDER_TYPE_LIMIT,
+                                price=order_price,
+                                validity=None,
+                                disclosed_quantity=None,
+                                trigger_price=None,
+                                squareoff=None,
+                                stoploss=None,
+                                trailing_stoploss=None,
+                                tag="TradingPython")
+            
+            if order_id is not None:
+                # PLACE GTT ORDER FOR STOP LOSS
+                gtt_order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
+                    tradingsymbol=symbol,
+                    exchange=broker.EXCHANGE_NSE,
+                    trigger_values=[stop_loss_price+1],
+                    last_price=order_price,
+                    orders=[
+                        {
+                            'exchange': broker.EXCHANGE_NSE,
+                            'transaction_type': broker.TRANSACTION_TYPE_SELL,
+                            'quantity': order_qty,
+                            'order_type': broker.ORDER_TYPE_LIMIT,
+                            'product': broker.PRODUCT_CNC,
+                            'price': stop_loss_price
+                        }
+                    ])
                 
-        #         order_data = {
-        #             'InTrade': in_position,
-        #             'OrderId': order_id,
-        #             'OrderQty': order_qty,
-        #             'OrderPrice': order_price,
-        #             'SLOrderId': gtt_order_id
-        #         }
+                order_data = {
+                    'InTrade': in_position,
+                    'OrderId': order_id,
+                    'OrderQty': order_qty,
+                    'OrderPrice': order_price,
+                    'SLOrderId': gtt_order_id
+                }
 
-        #         # UPDATE SHEET
-        #         # f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+                # UPDATE SHEET
+                f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
 
-        #     except Exception as ex:
-        #         print('error with save order')
-        #         print(ex)
+        except Exception as ex:
+            print('error with save order')
+            print(ex)
 
 if message:
     message = f"ETF BUY Daily RSI13 x 50\n{message}"
-    f.send_telegram_message(message)
-
-# %%
-
-message = ''
-
-for scode in sell_index_codes:
-    asset = next(r for r in symbol_token_dict.values() if r['index_token'] == scode)
-    in_position = bool(asset['in_position'])
-    
-    if in_position:
-        symbol = asset['symbol']
-        order_price = asset['ltp']
-        order_qty = abs(asset['buy_amount'] / order_price)
-
-        in_position = False
-        message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
-
-#         broker.place_order(variety=broker.VARIETY_REGULAR,
-#                                     exchange=broker.EXCHANGE_NSE,
-#                                     tradingsymbol=symbol,
-#                                     transaction_type=broker.TRANSACTION_TYPE_SELL,
-#                                     quantity=order_qty,
-#                                     product=broker.PRODUCT_CNC,
-#                                     order_type=broker.ORDER_TYPE_LIMIT,
-#                                     price=order_price,
-#                                     validity=None,
-#                                     disclosed_quantity=None,
-#                                     trigger_price=None,
-#                                     squareoff=None,
-#                                     stoploss=None,
-#                                     trailing_stoploss=None,
-#                                     tag="TradingPython")
-        
-#         if order_id is not None:
-#             try:
-#                 order_data = {
-#                     'InTrade': in_position,
-#                     'OrderId': order_id,
-#                     'OrderQty': order_qty,
-#                     'OrderPrice': order_price,
-#                     'SLOrderId': gtt_order_id
-#                 }
-                
-#                 # UPDATE SHEET
-#                 f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-
-#             except Exception as ex:
-#                 print('error with save order')
-#                 print(ex)
-
-if message:
-    message = f"ETF SELL Daily RSI13 x 50\n{message}"
     f.send_telegram_message(message)
