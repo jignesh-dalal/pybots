@@ -112,7 +112,7 @@ if not tick_received:
     sys.exit(0)
 
 
-symbol_token_dict
+print(symbol_token_dict)
 
 # %%
 STOP_LOSS_POINTS = 10
