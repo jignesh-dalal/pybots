@@ -1,6 +1,5 @@
 # %%
 import pandas as pd
-import pandas_ta as ta
 import utils as f
 import argparse
 import sys
