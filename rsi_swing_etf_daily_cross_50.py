@@ -54,16 +54,29 @@ def on_ws_ticks(ws, ticks):
     tick_received = True
 
 # %%
-ci_url = 'https://chartink.com/screener/all-indices-57'
-ci_buy_data = {
+ci_indices_url = 'https://chartink.com/screener/all-indices-57'
+ci_etfs_url = 'https://chartink.com/screener/all-etfs-25'
+
+ci_indices_buy_data = {
     'scan_clause': '( {45603} ( latest rsi( 13 ) >= 50 and 1 day ago  rsi( 13 ) <= 50 ) )'
 }
-ci_sell_data = {
+ci_etfs_buy_data = {
+    'scan_clause': '( {166311} ( latest rsi( 13 ) >= 50 and 1 day ago  rsi( 13 ) <= 50 ) )'
+}
+ci_indices_sell_data = {
     'scan_clause': '( {45603} ( latest rsi( 13 ) < 50 and 1 day ago  rsi( 13 ) >= 50 ) )'
 }
+ci_etfs_sell_data = {
+    'scan_clause': '( {166311} ( latest rsi( 13 ) < 50 and 1 day ago  rsi( 13 ) >= 50 ) )'
+}
 
-df_buy = f.get_chartink_data(ci_url, ci_buy_data)
-df_sell = f.get_chartink_data(ci_url, ci_sell_data)
+df_indices_buy = f.get_chartink_data(ci_indices_url, ci_indices_buy_data)
+df_etfs_buy = f.get_chartink_data(ci_etfs_url, ci_etfs_buy_data)
+df_indices_sell = f.get_chartink_data(ci_indices_url, ci_indices_sell_data)
+df_etfs_sell = f.get_chartink_data(ci_etfs_url, ci_etfs_sell_data)
+
+df_buy = pd.concat([df_indices_buy,df_etfs_buy])
+df_sell = pd.concat([df_indices_sell,df_etfs_sell])
 
 # %%
 if df_buy.empty and df_sell.empty:
