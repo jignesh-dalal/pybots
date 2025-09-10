@@ -3,6 +3,7 @@ import pandas as pd
 import utils as f
 import argparse
 import sys
+import math
 
 from kite_trade import *
 from datetime import datetime, timedelta
@@ -167,7 +168,7 @@ for bcode in buy_index_codes:
     if not in_position:
         symbol = asset['symbol']
         order_price = asset['ltp']
-        order_qty = abs(asset['buy_amount'] / order_price)
+        order_qty = math.floor(asset['buy_amount'] / order_price)
         stop_loss_price = asset['ohlc']['low'] - STOP_LOSS_POINTS
         
         in_position = True
