@@ -114,17 +114,16 @@ if not tick_received:
 
 print(symbol_token_dict)
 
-# %%
 STOP_LOSS_POINTS = 10
 positions = []
 
 message = ''
 
-for scode in sell_index_codes:
-    asset = next(r for r in symbol_token_dict.values() if r['index_token'] == scode)
+assets = symbol_token_dict.values()
+for asset in assets:
     in_position = bool(asset['in_position'])
     
-    if in_position:
+    if in_position and asset['index_token'] in sell_index_codes:
         symbol = asset['symbol']
         order_price = asset['ltp']
         order_qty = asset['OrderQty']
@@ -133,7 +132,6 @@ for scode in sell_index_codes:
         message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
 
         try:
-
             order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
                                         exchange=broker.EXCHANGE_NSE,
                                         tradingsymbol=symbol,
@@ -161,24 +159,11 @@ for scode in sell_index_codes:
                 
                 # UPDATE SHEET
                 f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-
         except Exception as ex:
-            print('error with save order')
+            print('error with SELL order')
             print(ex)
-
-if message:
-    message = f"ETF SELL Daily RSI13 x 50\n{message}"
-    f.send_telegram_message(message)
-
-# %%
-
-message = ''
-
-for bcode in buy_index_codes:
-    asset = next(r for r in symbol_token_dict.values() if r['index_token'] == bcode)
-    in_position = bool(asset['in_position'])
-
-    if not in_position:
+    
+    elif not in_position and asset['index_token'] in buy_index_codes:
         symbol = asset['symbol']
         order_price = asset['ltp']
         order_qty = math.floor(asset['buy_amount'] / order_price)
@@ -188,7 +173,6 @@ for bcode in buy_index_codes:
         message += f"{symbol}\nBUY: {order_qty} | Price: {order_price}"
 
         try:
-
             order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
                                 exchange=broker.EXCHANGE_NSE,
                                 tradingsymbol=symbol,
@@ -233,11 +217,11 @@ for bcode in buy_index_codes:
 
                 # UPDATE SHEET
                 f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-
         except Exception as ex:
-            print('error with save order')
+            print('error with BUY order')
             print(ex)
 
+
 if message:
-    message = f"ETF BUY Daily RSI13 x 50\n{message}"
+    message = f"ETF Daily RSI13 x 50\n{message}"
     f.send_telegram_message(message)
