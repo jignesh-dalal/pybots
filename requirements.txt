@@ -2,7 +2,6 @@ pyotp==2.9.0
 gspread>=6.0.1
 kiteconnect==5.0.1
 numpy>=1.26.4
-pandas>=3.12
-pandas_ta>=0.4.67b0
+pandas>=2.3.2
 bs4==0.0.2
 ./vendor/tradetools-0.2.tar.gz
