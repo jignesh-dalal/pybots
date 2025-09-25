@@ -76,6 +76,47 @@ def update_values_by_row_key_in_worksheet(row_key, values: Dict[str, str], sprea
                 print(f"Col->{i} - Prop->{prop_key} - Val->{value_to_update}")
                 worksheet.update_cell(row_number, i+1, value_to_update)
 
+def update_or_append_row(key_column, key_value, row_data, spreadsheet_name="trading_python", sheet_name="Creds"):
+    """
+    Updates a row in a Google Sheet if a key_value is found in key_column, otherwise appends a new row.
+    
+    Args:
+        spreadsheet_name (str): Name of the Google Spreadsheet.
+        sheet_name (str): Name of the worksheet within the spreadsheet.
+        key_column (str): Column letter (e.g., 'A') to search for key_value.
+        key_value (str): Value to search for in key_column to identify the row.
+        row_data (list): List of values to update or append as a row.
+    
+    Returns:
+        str: Message indicating whether the row was updated or appended.
+    """
+    try:
+        # Open the spreadsheet and worksheet
+        spreadsheet = get_spreadsheet_by_name(spreadsheet_name)
+        worksheet = spreadsheet.worksheet(sheet_name)
+        
+        # Get all values in the key column
+        key_column_values = worksheet.col_values(ord(key_column.upper()) - ord('A') + 1)
+        
+        # Check if key_value exists in the key column
+        try:
+            row_index = key_column_values.index(key_value) + 1  # +1 because gspread is 1-indexed
+            # Update the existing row
+            worksheet.update(range_name=f'A{row_index}:{chr(ord("A") + len(row_data) - 1)}{row_index}', 
+                           values=[row_data])
+            return f"Row {row_index} updated successfully."
+        except ValueError:
+            # Key not found, append a new row
+            worksheet.append_row(row_data)
+            return "New row appended successfully."
+            
+    except gspread.exceptions.SpreadsheetNotFound:
+        return "Error: Spreadsheet not found."
+    except gspread.exceptions.WorksheetNotFound:
+        return "Error: Worksheet not found."
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 # all_creds_dict = None
 def get_creds(spreadsheet_name="trading_python"):
     # if all_creds_dict is not None:
