@@ -246,36 +246,36 @@ if __name__ == "__main__":
             in_trade = False
             message += f"\n{symbol}->SELL: {order_qty} | Price: {order_price}"
 
-            # try:
-            #     order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-            #                                 exchange=broker.EXCHANGE_NSE,
-            #                                 tradingsymbol=symbol,
-            #                                 transaction_type=broker.TRANSACTION_TYPE_SELL,
-            #                                 quantity=order_qty,
-            #                                 product=broker.PRODUCT_CNC,
-            #                                 order_type=broker.ORDER_TYPE_LIMIT,
-            #                                 price=order_price,
-            #                                 validity=None,
-            #                                 disclosed_quantity=None,
-            #                                 trigger_price=None,
-            #                                 squareoff=None,
-            #                                 stoploss=None,
-            #                                 trailing_stoploss=None,
-            #                                 tag="TradingPython")
+            try:
+                order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                            exchange=broker.EXCHANGE_NSE,
+                                            tradingsymbol=symbol,
+                                            transaction_type=broker.TRANSACTION_TYPE_SELL,
+                                            quantity=order_qty,
+                                            product=broker.PRODUCT_CNC,
+                                            order_type=broker.ORDER_TYPE_LIMIT,
+                                            price=order_price,
+                                            validity=None,
+                                            disclosed_quantity=None,
+                                            trigger_price=None,
+                                            squareoff=None,
+                                            stoploss=None,
+                                            trailing_stoploss=None,
+                                            tag="TradingPython")
                 
-            #     if order_id is not None:
-            #         order_data = {
-            #             'InTrade': in_trade,
-            #             'OrderId': order_id,
-            #             'Shares': order_qty,
-            #             'Entry': order_price,
-            #         }
+                if order_id is not None:
+                    order_data = {
+                        'InTrade': in_trade,
+                        'OrderId': order_id,
+                        'Shares': order_qty,
+                        'Entry': order_price,
+                    }
                     
-            #         # UPDATE SHEET
-            #         f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-            # except Exception as ex:
-            #     print('error with SELL order')
-            #     print(ex)
+                    # UPDATE SHEET
+                    f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+            except Exception as ex:
+                print('error with SELL order')
+                print(ex)
         
         elif not in_trade and len(trades) < max_trades and symbol_token in buy_symbol_itokens:
 
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                     order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
                         tradingsymbol=symbol,
                         exchange=broker.EXCHANGE_NSE,
-                        trigger_values=[order_price*0.995],
+                        trigger_values=[order_price],
                         last_price=asset['ltp'],
                         orders=[
                             {
@@ -343,5 +343,6 @@ if __name__ == "__main__":
         message = f"ETF RS Weekly 89{message}"
         print(message)
         f.send_telegram_message(message)
+
 
 
