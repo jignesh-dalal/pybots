@@ -2,7 +2,7 @@ name: run rs_weekly_89.py
 
 on:
   schedule:
-    - cron: '45 9 * * 1,5' # At 09:45 UST (15:15 IST) on Monday and Friday.
+    - cron: '40 9 * * 1,5' # At 09:45 UST (15:15 IST) on Monday and Friday.
   #repository_dispatch: # api trigger
   workflow_dispatch: # manual trigger
 jobs:
