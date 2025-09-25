@@ -134,7 +134,8 @@ if __name__ == "__main__":
     inst_itokens = [x['SymbolIToken'] for x in instruments]
 
     nifty750 = f.get_all_records_from_sheet(worksheet_name='Nifty750')
-    nifty750 = [x for x in nifty750 if (x['SymbolIToken'] != -1) and (s['Index'] in ["NIFTYMIDCAP150","NIFTYSMLCAP250"])]
+    # nifty750 = [x for x in nifty750 if x['SymbolIToken'] != -1]
+    nifty750 = [x for x in nifty750 if (x['SymbolIToken'] != -1) and (x['Index'] in ["NIFTYMIDCAP150","NIFTYSMLCAP250"])]
 
     # nifty750 = [s for s in nifty750 if s['Symbol']=="AGI"]
 
@@ -342,4 +343,5 @@ if __name__ == "__main__":
         message = f"ETF RS Weekly 89{message}"
         print(message)
         f.send_telegram_message(message)
+
 
