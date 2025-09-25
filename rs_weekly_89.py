@@ -1,10 +1,10 @@
 import pandas as pd
-import pandas_ta as ta
 import utils as f
 import argparse
 import sys
 import math
 import numpy as np
+import talib
 
 from kite_trade import *
 from datetime import datetime, timedelta
@@ -62,7 +62,8 @@ def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
     df['RS_ABV_SMA'] = (df["RS"] >= df["RS_SMA"]).astype(int)
     df['RS_CROSS'] = df['RS_ABV_SMA'].diff().astype('Int64')
 
-    df['RSI'] = ta.rsi(df['Close'], length=rsi_length).fillna(0)
+    # df['RSI'] = ta.rsi(df['Close'], length=rsi_length).fillna(0)
+    df['RSI'] = talib.RSI(df['Close'], timeperiod=rsi_length).fillna(0)
     
     df['BUY'] = np.where((df['RS_CROSS'] == 1) & (df['RSI'] > rsi_min) & (df['RSI'] < rsi_max), True, False)
     df['SELL'] = df['RS_CROSS'] == -1
@@ -323,4 +324,5 @@ if __name__ == "__main__":
     if message:
         message = f"ETF RS Weekly 89\n{message}"
         print(message)
+
         # f.send_telegram_message(message)
