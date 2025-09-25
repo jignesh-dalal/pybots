@@ -9,15 +9,16 @@ import talib
 from kite_trade import *
 from datetime import datetime, timedelta
 
-
 # -------------------------------
 # Config
 # -------------------------------
 initial_capital = 100000
-risk_per_trade = 0.0    # risk 2% per trade
+risk_per_trade = 0.15    # risk 2% per trade
 stop_mode = "percent"    # options: "percent", "atr"
 stop_value = 10.0         # % or ATR multiple
-max_trades = 3           # maximum simultaneous trades
+# Dynamic max trades based on fixed risk per trade
+max_trades = int(1 / risk_per_trade)
+# max_trades = 5
 
 # COMMAND LINE ARGS
 parser = argparse.ArgumentParser()
@@ -126,9 +127,9 @@ if __name__ == "__main__":
     sell_symbol_itokens = []
 
     instruments = f.get_all_records_from_sheet(worksheet_name=wks_name)
-    instruments = [x for x in instruments if x['InTrade'] == True and x['SymbolIToken'] != '']
+    instruments = [x for x in instruments if (x['InTrade'].lower() in ['true', '1']) and (x['SymbolIToken'] != '')]
 
-    symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['IToken'], 'ltp': -1, 'buy': [], 'sell': [], 'in_trade': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments}
+    symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index': v['Index'], 'index_token': v['IToken'], 'in_trade': v['InTrade'], 'shares': v['Shares'], 'ltp': -1, 'buy': [], 'sell': []} for v in instruments}
   
     inst_itokens = [x['SymbolIToken'] for x in instruments]
 
@@ -174,22 +175,20 @@ if __name__ == "__main__":
         buy_signal = df['BUY'].iloc[-1] == True
         if buy_signal:
             buy_symbol_itokens.append(symbol_token)
-            symbol_obj = {'symbol':symbol, 'index_token': index_token, 'ltp': -1, 'buy': [], 'sell': [], 'in_trade': False, 'buy_amount': 0}
+            symbol_obj = {'symbol':symbol, 'index': index, 'index_token': index_token, 'in_trade': False, 'shares': 0, 'ltp': -1, 'buy': [], 'sell': []}
             symbol_token_dict[symbol_token] = symbol_obj
-            message += f"\nBUY: {symbol}"
+            message += f"\nBUY: {symbol} - Index: {index}"
         
         sell_signal = df['SELL'].iloc[-1] == True and symbol_token in inst_itokens
         if sell_signal:
             sell_symbol_itokens.append(symbol_token)
-            message += f"\nSELL: {symbol}"
+            message += f"\nSELL: {symbol} - Index: {index}"
 
     # END FOR LOOP
     if message:
         message = f"ETF RS Weekly 89\n{message}"
         print(message)
-        # f.send_telegram_message(message)
-
-    # display(symbol_token_dict)
+        f.send_telegram_message(message)
 
     symbol_tokens = list(symbol_token_dict.keys()) 
     tick_received = False
@@ -208,22 +207,34 @@ if __name__ == "__main__":
         print("No trades available")
         sys.exit(0)
 
+    # print(symbol_token_dict)
+
     message = ''
     capital = initial_capital
     trades = [{'symbol_token': t['SymbolIToken'], 'entry': t['Entry'], 'stop': t['Stop'], 'shares': t['Shares'] } for t in instruments]  # list of open trades (dicts)
 
+    print("ACTIVE TRADES")
+    print(trades)
+
+    # risk per trade (always based on initial capital)
+    fixed_risk_amount = initial_capital * risk_per_trade
+
     for key, asset in symbol_token_dict.items():
         in_trade = bool(asset['in_trade'])
+        symbol = asset['symbol']
+        symbol_token = key
+        index = asset['index']
+        index_token = asset['index_token']
         
         closed_trades = []
         # ---------------- Exit & Stop-loss ----------------
-        if in_trade and key in sell_symbol_itokens:
-            symbol = asset['symbol']
+        if in_trade and symbol_token in sell_symbol_itokens:
+            print("SELL Logic")
             order_price = asset['ltp']
-            order_qty = asset['OrderQty']
+            order_qty = asset['shares']
 
             for trade in trades:
-                if key == trade['symbol_token']:
+                if symbol_token == trade['symbol_token']:
                     capital += trade["shares"] * order_price
                     closed_trades.append(trade)
 
@@ -232,7 +243,7 @@ if __name__ == "__main__":
                 trades.remove(t)
 
             in_trade = False
-            message += f"{symbol}\nSOLD: {order_qty} | Price: {order_price}"
+            message += f"\n{symbol}->SELL: {order_qty} | Price: {order_price}"
 
             # try:
             #     order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
@@ -265,19 +276,20 @@ if __name__ == "__main__":
             #     print('error with SELL order')
             #     print(ex)
         
-        elif not in_trade and len(trades) < max_trades and key in buy_symbol_itokens:
-            symbol = asset['symbol']
-            order_price = asset['ltp']
+        elif not in_trade and len(trades) < max_trades and symbol_token in buy_symbol_itokens:
+
+            order_price = asset['ohlc']['high']
             stop_price = order_price * (1 - stop_value / 100)
 
-            risk_amount = capital * risk_per_trade
             per_share_risk = order_price - stop_price
-            shares = risk_amount // per_share_risk if per_share_risk > 0 else 0
+            shares = fixed_risk_amount // per_share_risk if per_share_risk > 0 else 0
+            
+            print(f"BUY Logic - Risk->{fixed_risk_amount} - Per Share Risk->{per_share_risk} - Shares->{shares} - Trades->{len(trades)}")
 
             if shares > 0:
-                capital -= shares * order_price
+                # capital -= shares * order_price
                 trades.append({
-                    "symbol_token": key, 
+                    "symbol_token": symbol_token, 
                     "entry": order_price,
                     "stop": stop_price,
                     "shares": shares
@@ -286,43 +298,47 @@ if __name__ == "__main__":
                 order_qty = math.floor(shares)
                 
                 in_trade = True
-                message += f"{symbol}\nBUY: {order_qty} | Price: {order_price}"
+                message += f"\n{symbol}->BUY: {order_qty} | Price: {order_price}"
 
-                # try:
-                #     order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-                #                         exchange=broker.EXCHANGE_NSE,
-                #                         tradingsymbol=symbol,
-                #                         transaction_type=broker.TRANSACTION_TYPE_BUY,
-                #                         quantity=order_qty,
-                #                         product=broker.PRODUCT_CNC,
-                #                         order_type=broker.ORDER_TYPE_LIMIT,
-                #                         price=order_price,
-                #                         validity=None,
-                #                         disclosed_quantity=None,
-                #                         trigger_price=None,
-                #                         squareoff=None,
-                #                         stoploss=None,
-                #                         trailing_stoploss=None,
-                #                         tag="TradingPython")
+                try:
+                    # order_id="abc123"
+                    order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
+                        tradingsymbol=symbol,
+                        exchange=broker.EXCHANGE_NSE,
+                        trigger_values=[order_price*0.995],
+                        last_price=asset['ltp'],
+                        orders=[
+                            {
+                                'exchange': broker.EXCHANGE_NSE,
+                                'transaction_type': broker.TRANSACTION_TYPE_BUY,
+                                'quantity': order_qty,
+                                'order_type': broker.ORDER_TYPE_LIMIT,
+                                'product': broker.PRODUCT_CNC,
+                                'price': order_price
+                            }
+                        ])
                     
-                #     if order_id is not None:
-                #         order_data = {
-                #             'InTrade': in_trade,
-                #             'OrderId': order_id,
-                #             'Shares': order_qty,
-                #             'Entry': order_price,
-                #         }
+                    if order_id is not None:
+                        order_data = [
+                            symbol,
+                            symbol_token,
+                            index,
+                            index_token,
+                            in_trade,
+                            order_id,
+                            order_qty,
+                            order_price
+                        ]
 
-                #         # UPDATE SHEET
-                #         f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-                # except Exception as ex:
-                #     print('error with BUY order')
-                #     print(ex)
+                        # UPDATE SHEET
+                        f.update_or_append_row(key_column="A", key_value=symbol, row_data=order_data, sheet_name=wks_name)
+                except Exception as ex:
+                    print('error with BUY order')
+                    print(ex)
 
     # print(trades)
 
     if message:
-        message = f"ETF RS Weekly 89\n{message}"
+        message = f"ETF RS Weekly 89{message}"
         print(message)
-
-        # f.send_telegram_message(message)
+        f.send_telegram_message(message)
