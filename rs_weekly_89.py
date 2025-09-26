@@ -18,7 +18,7 @@ stop_mode = "percent"    # options: "percent", "atr"
 stop_value = 12.0         # % or ATR multiple
 ## Dynamic max trades based on fixed risk per trade
 #max_trades = int(1 / risk_per_trade)
-max_trades = 3
+max_trades = 5
 
 # COMMAND LINE ARGS
 parser = argparse.ArgumentParser()
@@ -354,6 +354,7 @@ if __name__ == "__main__":
         message = f"ETF RS Weekly 89\n{message}"
         print(message)
         f.send_telegram_message(message)
+
 
 
 
