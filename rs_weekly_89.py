@@ -18,7 +18,7 @@ stop_mode = "percent"    # options: "percent", "atr"
 stop_value = 12.0         # % or ATR multiple
 ## Dynamic max trades based on fixed risk per trade
 #max_trades = int(1 / risk_per_trade)
-max_trades = 5
+max_trades = 3
 
 # COMMAND LINE ARGS
 parser = argparse.ArgumentParser()
@@ -222,6 +222,10 @@ if __name__ == "__main__":
 
     fixed_amount_per_trade = int(initial_capital / max_trades)
     active_trades = len(trades) - len(sell_symbol_itokens)
+    if max_trades == active_trades:
+        print("Max trades active so skipping the run!!")
+        sys.exit(0)
+    
     max_trades = max_trades - active_trades
 
     for key, asset in symbol_token_dict.items():
@@ -350,6 +354,7 @@ if __name__ == "__main__":
         message = f"ETF RS Weekly 89\n{message}"
         print(message)
         f.send_telegram_message(message)
+
 
 
 
