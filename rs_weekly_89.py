@@ -13,12 +13,12 @@ from datetime import datetime, timedelta
 # Config
 # -------------------------------
 initial_capital = 100000
-risk_per_trade = 0.15    # risk 2% per trade
+risk_per_trade = 0.02    # risk 2% per trade
 stop_mode = "percent"    # options: "percent", "atr"
-stop_value = 10.0         # % or ATR multiple
-# Dynamic max trades based on fixed risk per trade
-max_trades = int(1 / risk_per_trade)
-# max_trades = 5
+stop_value = 12.0         # % or ATR multiple
+## Dynamic max trades based on fixed risk per trade
+#max_trades = int(1 / risk_per_trade)
+max_trades = 5
 
 # COMMAND LINE ARGS
 parser = argparse.ArgumentParser()
@@ -178,12 +178,12 @@ if __name__ == "__main__":
             buy_symbol_itokens.append(symbol_token)
             symbol_obj = {'symbol':symbol, 'index': index, 'index_token': index_token, 'in_trade': False, 'shares': 0, 'ltp': -1, 'buy': [], 'sell': []}
             symbol_token_dict[symbol_token] = symbol_obj
-            message += f"\nBUY: {symbol} - Index: {index}"
+            message += f"\nBUY: {symbol}({index})"
         
         sell_signal = df['SELL'].iloc[-1] == True and symbol_token in inst_itokens
         if sell_signal:
             sell_symbol_itokens.append(symbol_token)
-            message += f"\nSELL: {symbol} - Index: {index}"
+            message += f"\nSELL: {symbol}({index})"
 
     # END FOR LOOP
     if message:
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         closed_trades = []
         # ---------------- Exit & Stop-loss ----------------
         if in_trade and symbol_token in sell_symbol_itokens:
-            print("SELL Logic")
+            #print("SELL Logic")
             order_price = asset['ltp']
             order_qty = asset['shares']
 
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                 trades.remove(t)
 
             in_trade = False
-            message += f"\n{symbol}->SELL: {order_qty} | Price: {order_price}"
+            message += f"\n{symbol}({index})->SELL: {order_qty} | Price: {order_price}"
 
             try:
                 order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
@@ -299,7 +299,7 @@ if __name__ == "__main__":
                 order_qty = math.floor(shares)
                 
                 in_trade = True
-                message += f"\n{symbol}->BUY: {order_qty} | Price: {order_price}"
+                message += f"\n{symbol}({index})->BUY: {order_qty} | Price: {order_price}"
 
                 try:
                     # order_id="abc123"
@@ -343,6 +343,7 @@ if __name__ == "__main__":
         message = f"ETF RS Weekly 89{message}"
         print(message)
         f.send_telegram_message(message)
+
 
 
 
