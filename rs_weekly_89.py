@@ -217,8 +217,12 @@ if __name__ == "__main__":
     print("ACTIVE TRADES")
     print(trades)
 
-    # risk per trade (always based on initial capital)
-    fixed_risk_amount = initial_capital * risk_per_trade
+    # # risk per trade (always based on initial capital)
+    # fixed_risk_amount = initial_capital * risk_per_trade
+
+    fixed_amount_per_trade = int(initial_capital / max_trades)
+    active_trades = len(trades) - len(sell_symbol_itokens)
+    max_trades = max_trades - active_trades
 
     for key, asset in symbol_token_dict.items():
         in_trade = bool(asset['in_trade'])
@@ -282,10 +286,13 @@ if __name__ == "__main__":
             order_price = asset['ohlc']['high']
             stop_price = order_price * (1 - stop_value / 100)
 
-            per_share_risk = order_price - stop_price
-            shares = fixed_risk_amount // per_share_risk if per_share_risk > 0 else 0
+            # per_share_risk = order_price - stop_price
+            # shares = fixed_risk_amount // per_share_risk if per_share_risk > 0 else 0
+
+            shares = fixed_amount_per_trade // order_price
             
-            print(f"BUY Logic - Risk->{fixed_risk_amount} - Per Share Risk->{per_share_risk} - Shares->{shares} - Trades->{len(trades)}")
+            # print(f"BUY Logic - Risk->{fixed_risk_amount} - Per Share Risk->{per_share_risk} - Shares->{shares} - Trades->{len(trades)}")
+            print(f"BUY Logic - Risk->{fixed_amount_per_trade} - Shares->{shares} - Trades->{len(trades)}")
 
             if shares > 0:
                 # capital -= shares * order_price
@@ -340,9 +347,10 @@ if __name__ == "__main__":
     # print(trades)
 
     if message:
-        message = f"ETF RS Weekly 89{message}"
+        message = f"ETF RS Weekly 89\n{message}"
         print(message)
         f.send_telegram_message(message)
+
 
 
 
