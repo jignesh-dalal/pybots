@@ -95,7 +95,8 @@ if __name__ == "__main__":
     buy_index_codes = df_buy['nsecode'].tolist() if 'nsecode' in df_buy.columns else []
     sell_index_codes = df_sell['nsecode'].tolist() if 'nsecode' in df_sell.columns else []
 
-    print(f'SELL CODES::{sell_index_codes}')
+    print(f'BUY_CODES::{buy_index_codes}')
+    print(f'SELL_CODES::{sell_index_codes}')
 
     index_codes = list(set(buy_index_codes + sell_index_codes))
     symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments if v['nsecode'] in index_codes}
