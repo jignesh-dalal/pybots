@@ -84,7 +84,7 @@ if __name__ == "__main__":
     df_sell = pd.concat([df_indices_sell,df_etfs_sell])
 
     if df_buy.empty and df_sell.empty:
-        print("No trades available")
+        print("[BUY/SELL]::No trades available")
         sys.exit(0)
 
     wks_name = args.wks
@@ -102,6 +102,10 @@ if __name__ == "__main__":
     symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments if v['nsecode'] in index_codes}
     symbol_tokens = list(symbol_token_dict.keys()) #[record['symbol_token'] for record in symbol_token_dict.values()] 
 
+    if not symbol_tokens:
+        print("[SYMBOL_TOKENS]::No trades available")
+        sys.exit(0)
+    
     tick_received = False
     broker.start_stream(on_ws_ticks, symbol_tokens)
 
@@ -115,7 +119,7 @@ if __name__ == "__main__":
     broker.end_stream(symbol_tokens)
 
     if not tick_received:
-        print("No trades available")
+        print("[TICK]::No trades available")
         sys.exit(0)
 
 
