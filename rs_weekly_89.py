@@ -59,7 +59,8 @@ def get_historical_df(symbol, symbol_token, from_date, to_date, interval='day') 
 
 def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
     df['RS'] = (df['Close'] / df['iClose']).fillna(0)
-    df['RS_SMA'] = df['RS'].rolling(89).mean().fillna(0)
+    # df['RS_SMA'] = df['RS'].rolling(89).mean().fillna(0)
+    df['RS_MA'] = talib.EMA(df['RS'], timeperiod=89).fillna(0)
     df['RS_ABV_SMA'] = (df["RS"] >= df["RS_SMA"]).astype(int)
     df['RS_CROSS'] = df['RS_ABV_SMA'].diff().astype('Int64')
 
@@ -187,177 +188,170 @@ if __name__ == "__main__":
 
     # END FOR LOOP
     if message:
-        message = f"ETF RS Weekly 89\n{message}"
+        message = f"ETF RS Weekly EMA 89\n{message}"
         print(message)
         f.send_telegram_message(message)
 
-    symbol_tokens = list(symbol_token_dict.keys()) 
-    tick_received = False
-    broker.start_stream(on_ws_ticks, symbol_tokens)
+    # symbol_tokens = list(symbol_token_dict.keys()) 
+    # tick_received = False
+    # broker.start_stream(on_ws_ticks, symbol_tokens)
 
-    count = 0
-    while not tick_received:
-        count += 1
-        # print(f'Count: {count}')
-        if count < 5: time.sleep(1)  
-        else: break    
+    # count = 0
+    # while not tick_received:
+        # count += 1
+        # # print(f'Count: {count}')
+        # if count < 5: time.sleep(1)  
+        # else: break    
 
-    broker.end_stream(symbol_tokens)
+    # broker.end_stream(symbol_tokens)
 
-    if not tick_received:
-        print("No trades available")
-        sys.exit(0)
+    # if not tick_received:
+        # print("No trades available")
+        # sys.exit(0)
 
-    # print(symbol_token_dict)
+    # # print(symbol_token_dict)
 
-    message = ''
-    capital = initial_capital
-    trades = [{'symbol_token': t['SymbolIToken'], 'entry': t['Entry'], 'stop': t['Stop'], 'shares': t['Shares'] } for t in instruments]  # list of open trades (dicts)
+    # message = ''
+    # capital = initial_capital
+    # trades = [{'symbol_token': t['SymbolIToken'], 'entry': t['Entry'], 'stop': t['Stop'], 'shares': t['Shares'] } for t in instruments]  # list of open trades (dicts)
 
-    print("ACTIVE TRADES")
-    print(trades)
-
-    # # risk per trade (always based on initial capital)
-    # fixed_risk_amount = initial_capital * risk_per_trade
-
-    fixed_amount_per_trade = int(initial_capital / max_trades)
-    active_trades = len(trades) - len(sell_symbol_itokens)
-    if max_trades == active_trades:
-        print("Max trades active so skipping the run!!")
-        sys.exit(0)
-    
-    max_trades = max_trades - active_trades
-
-    for key, asset in symbol_token_dict.items():
-        in_trade = bool(asset['in_trade'])
-        symbol = asset['symbol']
-        symbol_token = key
-        index = asset['index']
-        index_token = asset['index_token']
-        
-        closed_trades = []
-        # ---------------- Exit & Stop-loss ----------------
-        if in_trade and symbol_token in sell_symbol_itokens:
-            #print("SELL Logic")
-            order_price = asset['ltp']
-            order_qty = asset['shares']
-
-            for trade in trades:
-                if symbol_token == trade['symbol_token']:
-                    capital += trade["shares"] * order_price
-                    closed_trades.append(trade)
-
-            # remove closed trades
-            for t in closed_trades:
-                trades.remove(t)
-
-            in_trade = False
-            message += f"\n{symbol}({index})->SELL: {order_qty} | Price: {order_price}"
-
-            try:
-                order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-                                            exchange=broker.EXCHANGE_NSE,
-                                            tradingsymbol=symbol,
-                                            transaction_type=broker.TRANSACTION_TYPE_SELL,
-                                            quantity=order_qty,
-                                            product=broker.PRODUCT_CNC,
-                                            order_type=broker.ORDER_TYPE_LIMIT,
-                                            price=order_price,
-                                            validity=None,
-                                            disclosed_quantity=None,
-                                            trigger_price=None,
-                                            squareoff=None,
-                                            stoploss=None,
-                                            trailing_stoploss=None,
-                                            tag="TradingPython")
-                
-                if order_id is not None:
-                    order_data = {
-                        'InTrade': in_trade,
-                        'OrderId': order_id,
-                        'Shares': order_qty,
-                        'Entry': order_price,
-                    }
-                    
-                    # UPDATE SHEET
-                    f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-            except Exception as ex:
-                print('error with SELL order')
-                print(ex)
-        
-        elif not in_trade and len(trades) < max_trades and symbol_token in buy_symbol_itokens:
-
-            order_price = asset['ohlc']['high']
-            stop_price = order_price * (1 - stop_value / 100)
-
-            # per_share_risk = order_price - stop_price
-            # shares = fixed_risk_amount // per_share_risk if per_share_risk > 0 else 0
-
-            shares = fixed_amount_per_trade // order_price
-            
-            # print(f"BUY Logic - Risk->{fixed_risk_amount} - Per Share Risk->{per_share_risk} - Shares->{shares} - Trades->{len(trades)}")
-            print(f"BUY Logic - Risk->{fixed_amount_per_trade} - Shares->{shares} - Trades->{len(trades)}")
-
-            if shares > 0:
-                # capital -= shares * order_price
-                trades.append({
-                    "symbol_token": symbol_token, 
-                    "entry": order_price,
-                    "stop": stop_price,
-                    "shares": shares
-                })
-            
-                order_qty = math.floor(shares)
-                
-                in_trade = True
-                message += f"\n{symbol}({index})->BUY: {order_qty} | Price: {order_price}"
-
-                try:
-                    # order_id="abc123"
-                    order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
-                        tradingsymbol=symbol,
-                        exchange=broker.EXCHANGE_NSE,
-                        trigger_values=[order_price],
-                        last_price=asset['ltp'],
-                        orders=[
-                            {
-                                'exchange': broker.EXCHANGE_NSE,
-                                'transaction_type': broker.TRANSACTION_TYPE_BUY,
-                                'quantity': order_qty,
-                                'order_type': broker.ORDER_TYPE_LIMIT,
-                                'product': broker.PRODUCT_CNC,
-                                'price': order_price
-                            }
-                        ])
-                    
-                    if order_id is not None:
-                        order_data = [
-                            symbol,
-                            symbol_token,
-                            index,
-                            index_token,
-                            in_trade,
-                            order_id,
-                            order_qty,
-                            order_price
-                        ]
-
-                        # UPDATE SHEET
-                        f.update_or_append_row(key_column="A", key_value=symbol, row_data=order_data, sheet_name=wks_name)
-                except Exception as ex:
-                    print('error with BUY order')
-                    print(ex)
-
+    # print("ACTIVE TRADES")
     # print(trades)
 
-    if message:
-        message = f"ETF RS Weekly 89\n{message}"
-        print(message)
-        f.send_telegram_message(message)
+    # # # risk per trade (always based on initial capital)
+    # # fixed_risk_amount = initial_capital * risk_per_trade
 
+    # fixed_amount_per_trade = int(initial_capital / max_trades)
+    # active_trades = len(trades) - len(sell_symbol_itokens)
+    # if max_trades == active_trades:
+        # print("Max trades active so skipping the run!!")
+        # sys.exit(0)
+    
+    # max_trades = max_trades - active_trades
 
+    # for key, asset in symbol_token_dict.items():
+        # in_trade = bool(asset['in_trade'])
+        # symbol = asset['symbol']
+        # symbol_token = key
+        # index = asset['index']
+        # index_token = asset['index_token']
+        
+        # closed_trades = []
+        # # ---------------- Exit & Stop-loss ----------------
+        # if in_trade and symbol_token in sell_symbol_itokens:
+            # #print("SELL Logic")
+            # order_price = asset['ltp']
+            # order_qty = asset['shares']
 
+            # for trade in trades:
+                # if symbol_token == trade['symbol_token']:
+                    # capital += trade["shares"] * order_price
+                    # closed_trades.append(trade)
 
+            # # remove closed trades
+            # for t in closed_trades:
+                # trades.remove(t)
 
+            # in_trade = False
+            # message += f"\n{symbol}({index})->SELL: {order_qty} | Price: {order_price}"
 
+            # try:
+                # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                            # exchange=broker.EXCHANGE_NSE,
+                                            # tradingsymbol=symbol,
+                                            # transaction_type=broker.TRANSACTION_TYPE_SELL,
+                                            # quantity=order_qty,
+                                            # product=broker.PRODUCT_CNC,
+                                            # order_type=broker.ORDER_TYPE_LIMIT,
+                                            # price=order_price,
+                                            # validity=None,
+                                            # disclosed_quantity=None,
+                                            # trigger_price=None,
+                                            # squareoff=None,
+                                            # stoploss=None,
+                                            # trailing_stoploss=None,
+                                            # tag="TradingPython")
+                
+                # if order_id is not None:
+                    # order_data = {
+                        # 'InTrade': in_trade,
+                        # 'OrderId': order_id,
+                        # 'Shares': order_qty,
+                        # 'Entry': order_price,
+                    # }
+                    
+                    # # UPDATE SHEET
+                    # f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+            # except Exception as ex:
+                # print('error with SELL order')
+                # print(ex)
+        
+        # elif not in_trade and len(trades) < max_trades and symbol_token in buy_symbol_itokens:
 
+            # order_price = asset['ohlc']['high']
+            # stop_price = order_price * (1 - stop_value / 100)
+
+            # # per_share_risk = order_price - stop_price
+            # # shares = fixed_risk_amount // per_share_risk if per_share_risk > 0 else 0
+
+            # shares = fixed_amount_per_trade // order_price
+            
+            # # print(f"BUY Logic - Risk->{fixed_risk_amount} - Per Share Risk->{per_share_risk} - Shares->{shares} - Trades->{len(trades)}")
+            # print(f"BUY Logic - Risk->{fixed_amount_per_trade} - Shares->{shares} - Trades->{len(trades)}")
+
+            # if shares > 0:
+                # # capital -= shares * order_price
+                # trades.append({
+                    # "symbol_token": symbol_token, 
+                    # "entry": order_price,
+                    # "stop": stop_price,
+                    # "shares": shares
+                # })
+            
+                # order_qty = math.floor(shares)
+                
+                # in_trade = True
+                # message += f"\n{symbol}({index})->BUY: {order_qty} | Price: {order_price}"
+
+                # try:
+                    # # order_id="abc123"
+                    # order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
+                        # tradingsymbol=symbol,
+                        # exchange=broker.EXCHANGE_NSE,
+                        # trigger_values=[order_price],
+                        # last_price=asset['ltp'],
+                        # orders=[
+                            # {
+                                # 'exchange': broker.EXCHANGE_NSE,
+                                # 'transaction_type': broker.TRANSACTION_TYPE_BUY,
+                                # 'quantity': order_qty,
+                                # 'order_type': broker.ORDER_TYPE_LIMIT,
+                                # 'product': broker.PRODUCT_CNC,
+                                # 'price': order_price
+                            # }
+                        # ])
+                    
+                    # if order_id is not None:
+                        # order_data = [
+                            # symbol,
+                            # symbol_token,
+                            # index,
+                            # index_token,
+                            # in_trade,
+                            # order_id,
+                            # order_qty,
+                            # order_price
+                        # ]
+
+                        # # UPDATE SHEET
+                        # f.update_or_append_row(key_column="A", key_value=symbol, row_data=order_data, sheet_name=wks_name)
+                # except Exception as ex:
+                    # print('error with BUY order')
+                    # print(ex)
+
+    # # print(trades)
+
+    # if message:
+        # message = f"ETF RS Weekly 89\n{message}"
+        # print(message)
+        # f.send_telegram_message(message)
