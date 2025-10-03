@@ -59,9 +59,9 @@ def get_historical_df(symbol, symbol_token, from_date, to_date, interval='day') 
 
 def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
     df['RS'] = (df['Close'] / df['iClose']).fillna(0)
-    # df['RS_SMA'] = df['RS'].rolling(89).mean().fillna(0)
+    # df['RS_MA'] = df['RS'].rolling(89).mean().fillna(0)
     df['RS_MA'] = talib.EMA(df['RS'], timeperiod=89).fillna(0)
-    df['RS_ABV_SMA'] = (df["RS"] >= df["RS_SMA"]).astype(int)
+    df['RS_ABV_SMA'] = (df["RS"] >= df["RS_MA"]).astype(int)
     df['RS_CROSS'] = df['RS_ABV_SMA'].diff().astype('Int64')
 
     # df['RSI'] = ta.rsi(df['Close'], length=rsi_length).fillna(0)
@@ -355,3 +355,4 @@ if __name__ == "__main__":
         # message = f"ETF RS Weekly 89\n{message}"
         # print(message)
         # f.send_telegram_message(message)
+
