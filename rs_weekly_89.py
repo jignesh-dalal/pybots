@@ -165,7 +165,7 @@ if __name__ == "__main__":
 # Strategy
 # -------------------------------
     to_date = datetime.now()
-    from_date = to_date - timedelta(days=700)
+    from_date = to_date - timedelta(days=1260)
     ohlc_dict = { 
         'iSymbol': 'first',  
         'iSymbolToken': 'first',
@@ -417,5 +417,6 @@ if __name__ == "__main__":
         # message = f"ETF RS Weekly 89\n{message}"
         # print(message)
         # f.send_telegram_message(message)
+
 
 
