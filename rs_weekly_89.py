@@ -57,18 +57,78 @@ def get_historical_df(symbol, symbol_token, from_date, to_date, interval='day') 
         print(f'Error: {str(ex)}')
 
 
-def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
-    df['RS'] = (df['Close'] / df['iClose']).fillna(0)
-    # df['RS_MA'] = df['RS'].rolling(89).mean().fillna(0)
-    df['RS_MA'] = talib.EMA(df['RS'], timeperiod=89).fillna(0)
-    df['RS_ABV_SMA'] = (df["RS"] >= df["RS_MA"]).astype(int)
-    df['RS_CROSS'] = df['RS_ABV_SMA'].diff().astype('Int64')
+# def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
+    # df['RS'] = (df['Close'] / df['iClose']).fillna(0)
+    # # df['RS_MA'] = df['RS'].rolling(89).mean().fillna(0)
+    # df['RS_MA'] = talib.EMA(df['RS'], timeperiod=89).fillna(0)
+    # df['RS_ABV_SMA'] = (df["RS"] >= df["RS_MA"]).astype(int)
+    # df['RS_CROSS'] = df['RS_ABV_SMA'].diff().astype('Int64')
 
-    # df['RSI'] = ta.rsi(df['Close'], length=rsi_length).fillna(0)
-    df['RSI'] = talib.RSI(df['Close'], timeperiod=rsi_length).fillna(0)
+    # # df['RSI'] = ta.rsi(df['Close'], length=rsi_length).fillna(0)
+    # df['RSI'] = talib.RSI(df['Close'], timeperiod=rsi_length).fillna(0)
     
-    df['BUY'] = np.where((df['RS_CROSS'] == 1) & (df['RSI'] > rsi_min) & (df['RSI'] < rsi_max), True, False)
-    df['SELL'] = df['RS_CROSS'] == -1
+    # df['BUY'] = np.where((df['RS_CROSS'] == 1) & (df['RSI'] > rsi_min) & (df['RSI'] < rsi_max), True, False)
+    # df['SELL'] = df['RS_CROSS'] == -1
+
+    # return df
+
+def apply_strategy(df: pd.DataFrame, rsi_length=13, rsi_min=50, rsi_max=65):
+    # df['RSI'] = talib.RSI(df['Close'], timeperiod=rsi_length).fillna(0)
+    df['rs'] = (df['Close'] / df['iClose']).fillna(0)
+    # df['rs_ma'] = df['rs'].rolling(89).mean().fillna(0)
+    # df['rs_ma'] = ma(df['rs'], 89).fillna(0)
+    df['rs_ma'] = talib.EMA(df['rs'], timeperiod=89).fillna(0)
+    df['rs_gt_ma'] = np.where((df["rs_ma"] > 0) & (df["rs"] > df["rs_ma"]), 1, 0)
+    df['rs_cr'] = df['rs_gt_ma'].diff().astype('Int64')
+    # Identify potential crossover points (where ema_short crosses ema_long)
+    # Bullish crossover: ema_short was below, now it's above
+    df['bl_cr'] = (df['rs'].shift(1) < df['rs_ma'].shift(1)) & (df['rs'] > df['rs_ma'])
+    df['br_cr'] = (df['rs'].shift(1) > df['rs_ma'].shift(1)) & (df['rs'] < df['rs_ma'])
+    # --- Whipsaw filter implementation ---
+    lookback_period = 13  # Check the past n periods
+
+    # Condition for a confirmed bullish crossover:
+    # The short EMA must have been below the long EMA for the entire lookback_period *just before* the crossover.
+    # We check if 'ema_short' was consistently below 'ema_long' for the 'lookback_period' leading up to the current point.
+    # df['bl_cf'] = (df['RS'].shift(1).rolling(window=lookback_period).apply(lambda x: (x < df['rs_ma'].shift(1).loc[x.index]).all(), raw=False))
+    df['bl_cf'] = df['rs'].shift(1).rolling(window=lookback_period).apply(lambda x: (x < df['rs_ma'].shift(1).loc[x.index]).all(), raw=False).fillna(False).astype(bool)
+    df['br_cf'] = df['rs'].shift(1).rolling(window=lookback_period).apply(lambda x: (x > df['rs_ma'].shift(1).loc[x.index]).all(), raw=False).fillna(False).astype(bool)
+
+    # --- Nearing crossover signal implementation ---
+    threshold = 0.003  # Defines how close the EMAs must be to trigger a signal
+    slope_lookback = 5 # Defines the period to check EMA direction
+
+    # Calculate the difference between the two EMAs
+    df['ma_diff'] = df['rs_ma'] - df['rs']
+
+    # # Bullish alert: Difference is small, and the short EMA is below the long EMA
+    # df['nr_bl'] = ((df['ma_diff'] < threshold) & (df['ma_diff'] > 0)).astype(int)
+    
+    # # Bearish alert: Difference is small, and the short EMA is above the long EMA
+    # df['nr_br'] = ((df['ma_diff'] > -threshold) & (df['ma_diff'] < 0)).astype(int) * -1
+
+    # Bullish alert: Difference is small, and the short EMA is *below* the long EMA, AND the short EMA's trend is up
+    df['nr_bl'] = np.where(
+        (df['ma_diff'] < threshold) & (df['ma_diff'] > 0) & (df['rs'].diff(slope_lookback) > 0), 1, 0)
+
+    # Bearish alert: Difference is small, and the short EMA is *above* the long EMA, AND the short EMA's trend is down
+    df['nr_br'] = np.where(
+        (df['ma_diff'] > -threshold) & (df['ma_diff'] < 0) & (df['rs'].diff(slope_lookback) < 0), -1, 0)
+
+
+    # Combine the signals into a final filtered crossover and nearing column
+    df['signal'] = 0.0
+
+    # Confirmed crossovers (filtered)
+    df.loc[df['bl_cr'] & df['bl_cf'], 'signal'] = 1.0
+    df.loc[df['br_cr'], 'signal'] = -1.0
+
+    # Nearing crossovers (as a distinct type of signal)
+    df.loc[(df['nr_bl'] == 1) & (df['signal'] == 0.0), 'signal'] = 0.5
+    df.loc[(df['nr_br'] == -1) & (df['signal'] == 0.0), 'signal'] = -0.5
+    
+    # Clean up intermediate columns (optional)
+    df.drop(columns=['bl_cr', 'br_cr', 'bl_cf', 'br_cf', 'ma_diff', 'nr_bl', 'nr_br'], inplace=True)
 
     return df
 
@@ -135,8 +195,8 @@ if __name__ == "__main__":
     inst_itokens = [x['SymbolIToken'] for x in instruments]
 
     nifty750 = f.get_all_records_from_sheet(worksheet_name='Nifty750')
-    # nifty750 = [x for x in nifty750 if x['SymbolIToken'] != -1]
-    nifty750 = [x for x in nifty750 if (x['SymbolIToken'] != -1) and (x['Index'] in ["NIFTYMIDCAP150","NIFTYSMLCAP250"])]
+    nifty750 = [x for x in nifty750 if x['SymbolIToken'] != -1]
+    #nifty750 = [x for x in nifty750 if (x['SymbolIToken'] != -1) and (x['Index'] in ["NIFTYMIDCAP150","NIFTYSMLCAP250"])]
 
     # nifty750 = [s for s in nifty750 if s['Symbol']=="AGI"]
 
@@ -174,17 +234,19 @@ if __name__ == "__main__":
 
         # display(df.tail(22))
 
-        buy_signal = df['BUY'].iloc[-1] == True
+        latest_signal = df['signal'].iloc[-1]  
+        buy_signal = latest_signal in [1]
         if buy_signal:
+            # print(df.tail(5))
             buy_symbol_itokens.append(symbol_token)
             symbol_obj = {'symbol':symbol, 'index': index, 'index_token': index_token, 'in_trade': False, 'shares': 0, 'ltp': -1, 'buy': [], 'sell': []}
             symbol_token_dict[symbol_token] = symbol_obj
-            message += f"\nBUY: {symbol}({index})"
-        
-        sell_signal = df['SELL'].iloc[-1] == True and symbol_token in inst_itokens
+            message += f"\nBUY: {symbol} | {index}"
+    
+        sell_signal = latest_signal == -1 and symbol_token in inst_itokens
         if sell_signal:
             sell_symbol_itokens.append(symbol_token)
-            message += f"\nSELL: {symbol}({index})"
+            message += f"\nSELL: {symbol} | {index}"
 
     # END FOR LOOP
     if message:
@@ -355,4 +417,5 @@ if __name__ == "__main__":
         # message = f"ETF RS Weekly 89\n{message}"
         # print(message)
         # f.send_telegram_message(message)
+
 
