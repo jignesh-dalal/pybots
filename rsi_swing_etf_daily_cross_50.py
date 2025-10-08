@@ -99,7 +99,7 @@ if __name__ == "__main__":
     print(f'SELL_CODES::{sell_index_codes}')
 
     index_codes = list(set(buy_index_codes + sell_index_codes))
-    symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount']} for v in instruments if v['nsecode'] in index_codes}
+    symbol_token_dict = {v['SymbolIToken']: {'symbol':v['Symbol'], 'index_token': v['nsecode'], 'ltp': -1, 'buy': [], 'sell': [], 'in_position': v['InTrade'], 'buy_amount': v['BuyAmount'], 'qty': v['OrderQty']} for v in instruments if v['nsecode'] in index_codes}
     symbol_tokens = list(symbol_token_dict.keys()) #[record['symbol_token'] for record in symbol_token_dict.values()] 
 
     if not symbol_tokens:
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         if in_position and asset['index_token'] in sell_index_codes:
             symbol = asset['symbol']
             order_price = asset['ltp']
-            order_qty = asset['OrderQty']
+            order_qty = asset['qty']
 
             in_position = False
             message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
