@@ -250,7 +250,7 @@ if __name__ == "__main__":
 
     # END FOR LOOP
     if message:
-        message = f"ETF RS Weekly EMA 89\n{message}"
+        message = f"RPS Weekly EMA 89\n{message}"
         print(message)
         f.send_telegram_message(message)
 
@@ -414,9 +414,10 @@ if __name__ == "__main__":
     # # print(trades)
 
     # if message:
-        # message = f"ETF RS Weekly 89\n{message}"
+        # message = f"RPS Weekly EMA 89\n{message}"
         # print(message)
         # f.send_telegram_message(message)
+
 
 
 
