@@ -134,8 +134,8 @@ if __name__ == "__main__":
     assets = symbol_token_dict.values()
     for asset in assets:
         in_position = bool(asset['in_position'])
-        
-        if in_position and asset['index_token'] in sell_index_codes:
+        # Original: if in_position and asset['index_token'] in sell_index_codes:
+        if in_position or asset['index_token'] in sell_index_codes:
             symbol = asset['symbol']
             order_price = asset['ltp']
             order_qty = asset['qty']
@@ -143,39 +143,40 @@ if __name__ == "__main__":
             in_position = False
             message += f"{symbol}\nSELL: {order_qty} | Price: {order_price}"
 
-            try:
-                order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-                                            exchange=broker.EXCHANGE_NSE,
-                                            tradingsymbol=symbol,
-                                            transaction_type=broker.TRANSACTION_TYPE_SELL,
-                                            quantity=order_qty,
-                                            product=broker.PRODUCT_CNC,
-                                            order_type=broker.ORDER_TYPE_LIMIT,
-                                            price=order_price,
-                                            validity=None,
-                                            disclosed_quantity=None,
-                                            trigger_price=None,
-                                            squareoff=None,
-                                            stoploss=None,
-                                            trailing_stoploss=None,
-                                            tag="TradingPython")
+            # try:
+                # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                            # exchange=broker.EXCHANGE_NSE,
+                                            # tradingsymbol=symbol,
+                                            # transaction_type=broker.TRANSACTION_TYPE_SELL,
+                                            # quantity=order_qty,
+                                            # product=broker.PRODUCT_CNC,
+                                            # order_type=broker.ORDER_TYPE_LIMIT,
+                                            # price=order_price,
+                                            # validity=None,
+                                            # disclosed_quantity=None,
+                                            # trigger_price=None,
+                                            # squareoff=None,
+                                            # stoploss=None,
+                                            # trailing_stoploss=None,
+                                            # tag="TradingPython")
                 
-                if order_id is not None:
-                    order_data = {
-                        'InTrade': in_position,
-                        'OrderId': order_id,
-                        'OrderQty': order_qty,
-                        'OrderPrice': order_price,
-                        'SLOrderId': ''
-                    }
+                # if order_id is not None:
+                    # order_data = {
+                        # 'InTrade': in_position,
+                        # 'OrderId': order_id,
+                        # 'OrderQty': order_qty,
+                        # 'OrderPrice': order_price,
+                        # 'SLOrderId': ''
+                    # }
                     
-                    # UPDATE SHEET
-                    f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-            except Exception as ex:
-                print('error with SELL order')
-                print(ex)
+                    # # UPDATE SHEET
+                    # f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+            # except Exception as ex:
+                # print('error with SELL order')
+                # print(ex)
         
-        elif not in_position and asset['index_token'] in buy_index_codes:
+        # elif not in_position and asset['index_token'] in buy_index_codes:
+        elif not in_position or asset['index_token'] in buy_index_codes:
             symbol = asset['symbol']
             order_price = asset['ltp']
             order_qty = math.floor(asset['buy_amount'] / order_price)
@@ -185,54 +186,54 @@ if __name__ == "__main__":
             in_position = True
             message += f"{symbol}\nBUY: {order_qty} | Price: {order_price} | SL: {stop_loss_price}"
 
-            try:
-                order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
-                                    exchange=broker.EXCHANGE_NSE,
-                                    tradingsymbol=symbol,
-                                    transaction_type=broker.TRANSACTION_TYPE_BUY,
-                                    quantity=order_qty,
-                                    product=broker.PRODUCT_CNC,
-                                    order_type=broker.ORDER_TYPE_LIMIT,
-                                    price=order_price,
-                                    validity=None,
-                                    disclosed_quantity=None,
-                                    trigger_price=None,
-                                    squareoff=None,
-                                    stoploss=None,
-                                    trailing_stoploss=None,
-                                    tag="TradingPython")
+            # try:
+                # order_id = broker.place_order(variety=broker.VARIETY_REGULAR,
+                                    # exchange=broker.EXCHANGE_NSE,
+                                    # tradingsymbol=symbol,
+                                    # transaction_type=broker.TRANSACTION_TYPE_BUY,
+                                    # quantity=order_qty,
+                                    # product=broker.PRODUCT_CNC,
+                                    # order_type=broker.ORDER_TYPE_LIMIT,
+                                    # price=order_price,
+                                    # validity=None,
+                                    # disclosed_quantity=None,
+                                    # trigger_price=None,
+                                    # squareoff=None,
+                                    # stoploss=None,
+                                    # trailing_stoploss=None,
+                                    # tag="TradingPython")
                 
-                if order_id is not None:
-                    # PLACE GTT ORDER FOR STOP LOSS
-                    gtt_order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
-                        tradingsymbol=symbol,
-                        exchange=broker.EXCHANGE_NSE,
-                        trigger_values=[candle_low],
-                        last_price=order_price,
-                        orders=[
-                            {
-                                'exchange': broker.EXCHANGE_NSE,
-                                'transaction_type': broker.TRANSACTION_TYPE_SELL,
-                                'quantity': order_qty,
-                                'order_type': broker.ORDER_TYPE_LIMIT,
-                                'product': broker.PRODUCT_CNC,
-                                'price': stop_loss_price
-                            }
-                        ])
+                # if order_id is not None:
+                    # # PLACE GTT ORDER FOR STOP LOSS
+                    # gtt_order_id = broker.place_gtt(trigger_type=broker.GTT_TYPE_SINGLE, 
+                        # tradingsymbol=symbol,
+                        # exchange=broker.EXCHANGE_NSE,
+                        # trigger_values=[candle_low],
+                        # last_price=order_price,
+                        # orders=[
+                            # {
+                                # 'exchange': broker.EXCHANGE_NSE,
+                                # 'transaction_type': broker.TRANSACTION_TYPE_SELL,
+                                # 'quantity': order_qty,
+                                # 'order_type': broker.ORDER_TYPE_LIMIT,
+                                # 'product': broker.PRODUCT_CNC,
+                                # 'price': stop_loss_price
+                            # }
+                        # ])
                     
-                    order_data = {
-                        'InTrade': in_position,
-                        'OrderId': order_id,
-                        'OrderQty': order_qty,
-                        'OrderPrice': order_price,
-                        'SLOrderId': gtt_order_id
-                    }
+                    # order_data = {
+                        # 'InTrade': in_position,
+                        # 'OrderId': order_id,
+                        # 'OrderQty': order_qty,
+                        # 'OrderPrice': order_price,
+                        # 'SLOrderId': gtt_order_id
+                    # }
 
-                    # UPDATE SHEET
-                    f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
-            except Exception as ex:
-                print('error with BUY order')
-                print(ex)
+                    # # UPDATE SHEET
+                    # f.update_values_by_row_key_in_worksheet(symbol, order_data, worksheet_name=wks_name)
+            # except Exception as ex:
+                # print('error with BUY order')
+                # print(ex)
 
 
     if message:
