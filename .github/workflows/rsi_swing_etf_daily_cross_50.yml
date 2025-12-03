@@ -2,7 +2,7 @@ name: run rsi_swing_etf_daily_cross_50.py
 
 on:
   schedule:
-    - cron: '45 9 * * 1-5' # At 09:30 on every day-of-week from Monday through Friday.
+    - cron: '41 9 * * 1-5' # At 09:30 on every day-of-week from Monday through Friday.
   #repository_dispatch: # api trigger
   workflow_dispatch: # manual trigger
 jobs:
